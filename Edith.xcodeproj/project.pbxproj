@@ -24,6 +24,7 @@
 		T06 /* ZoomFunctionalityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T15; };
 		T07 /* SessionRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T16; };
 		T08 /* StatusBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T17; };
+		T09 /* FileWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T18; };
 		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
 		U03 /* SessionRestoreUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U12; };
 /* End PBXBuildFile section */
@@ -66,6 +67,7 @@
 		T15 /* ZoomFunctionalityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomFunctionalityTests.swift; sourceTree = "<group>"; };
 		T16 /* SessionRestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreTests.swift; sourceTree = "<group>"; };
 		T17 /* StatusBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarTests.swift; sourceTree = "<group>"; };
+		T18 /* FileWatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcherTests.swift; sourceTree = "<group>"; };
 		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
 		U11 /* EdithUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		U12 /* SessionRestoreUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreUITests.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 				T15 /* ZoomFunctionalityTests.swift */,
 				T16 /* SessionRestoreTests.swift */,
 				T17 /* StatusBarTests.swift */,
+				T18 /* FileWatcherTests.swift */,
 			);
 			path = EdithTests;
 			sourceTree = "<group>";
@@ -271,6 +274,7 @@
 				T06 /* ZoomFunctionalityTests.swift in Sources */,
 				T07 /* SessionRestoreTests.swift in Sources */,
 				T08 /* StatusBarTests.swift in Sources */,
+				T09 /* FileWatcherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

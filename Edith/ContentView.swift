@@ -65,6 +65,7 @@ struct ContentView: View {
                     },
                     onDismiss: {
                         showFileChangedBanner = false
+                        fileWatcher.acknowledgeChange()
                     }
                 )
             }
@@ -117,10 +118,13 @@ struct ContentView: View {
     
     private func startWatchingFile() {
         // Try to get the file URL from NSDocumentController
-        if let windowController = NSApp.keyWindow?.windowController,
-           let document = windowController.document as? NSDocument,
-           let fileURL = document.fileURL {
-            fileWatcher.startWatching(url: fileURL)
+        // Delay slightly to ensure window is set up
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            if let windowController = NSApp.keyWindow?.windowController,
+               let document = windowController.document as? NSDocument,
+               let fileURL = document.fileURL {
+                fileWatcher.startWatching(url: fileURL)
+            }
         }
     }
     
@@ -192,16 +196,76 @@ class FileWatcher: ObservableObject {
     func acknowledgeChange() {
         fileChanged = false
         if let url = watchedURL {
+            // Re-establish the watch in case the file was replaced (new inode)
+            // This handles editors like vim that create a new file when saving
+            let savedURL = url
+            // Update modification date first
             lastKnownModificationDate = try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+            // Then re-establish watch
+            startWatching(url: savedURL)
         }
     }
     
     private func checkForChanges() {
         guard let url = watchedURL else { return }
         
-        guard let newDate = try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date else { return }
+        guard let newDate = try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date else {
+            // File might have been replaced - re-establish watch after delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                guard let self = self, let url = self.watchedURL else { return }
+                self.startWatching(url: url)
+            }
+            return
+        }
         
-        if let lastDate = lastKnownModificationDate, newDate > lastDate {
+        // Check if the file was modified
+        guard let lastDate = lastKnownModificationDate, newDate > lastDate else { return }
+        
+        // File was modified - check if we should suppress (Edith's own save)
+        let shouldSuppress = EdithSaveTracker.shared.shouldSuppressFileChangeAlert()
+        
+        // Always update the known date to track the latest state
+        lastKnownModificationDate = newDate
+        
+        // Re-establish watch since file might have been replaced (new inode)
+        // This handles editors like vim that delete+rename when saving
+        let savedURL = url
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            self.stopWatching()
+            self.watchedURL = savedURL
+            self.lastKnownModificationDate = newDate
+            
+            self.fileDescriptor = open(savedURL.path, O_EVTONLY)
+            guard self.fileDescriptor >= 0 else { return }
+            
+            self.source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: self.fileDescriptor,
+                eventMask: [.write, .rename, .delete, .attrib],
+                queue: .main
+            )
+            
+            self.source?.setEventHandler { [weak self] in
+                self?.checkForChanges()
+            }
+            
+            self.source?.setCancelHandler { [weak self] in
+                if let fd = self?.fileDescriptor, fd >= 0 {
+                    close(fd)
+                }
+                self?.fileDescriptor = -1
+            }
+            
+            self.source?.resume()
+        }
+        
+        if shouldSuppress {
+            // This was Edith's own save - suppress silently
+            return
+        }
+        
+        // External modification - show banner (only if not already showing)
+        if !fileChanged {
             fileChanged = true
         }
     }

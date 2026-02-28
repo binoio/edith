@@ -6,6 +6,40 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// Global flag to track when Edith is saving (to avoid false file-change alerts)
+class EdithSaveTracker {
+    static let shared = EdithSaveTracker()
+    private var saveCount = 0
+    private var lastSaveCompletedTime: Date?
+    
+    func markSaveStarted() {
+        saveCount += 1
+    }
+    
+    func markSaveCompleted() {
+        lastSaveCompletedTime = Date()
+        // Decrement save count after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.saveCount = max(0, self.saveCount - 1)
+        }
+    }
+    
+    func shouldSuppressFileChangeAlert() -> Bool {
+        // Suppress if we're actively in a save operation
+        if saveCount > 0 { return true }
+        // Also suppress if a save completed very recently (within 500ms)
+        if let lastComplete = lastSaveCompletedTime, Date().timeIntervalSince(lastComplete) < 0.5 {
+            return true
+        }
+        return false
+    }
+    
+    func clearSuppression() {
+        // Called after suppression window, resets state
+        lastSaveCompletedTime = nil
+    }
+}
+
 struct TextDocument: FileDocument {
     var text: String
     var encoding: TextEncodingOption
@@ -45,6 +79,9 @@ struct TextDocument: FileDocument {
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        // Mark that Edith is saving
+        EdithSaveTracker.shared.markSaveStarted()
+        
         // Normalize line endings before saving
         var outputText = text
         
@@ -62,6 +99,12 @@ struct TextDocument: FileDocument {
         guard let data = outputText.data(using: encoding.stringEncoding) ?? outputText.data(using: .utf8) else {
             throw CocoaError(.fileWriteUnknown)
         }
+        
+        // Mark save as completing (with delay for file system)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            EdithSaveTracker.shared.markSaveCompleted()
+        }
+        
         return FileWrapper(regularFileWithContents: data)
     }
 }
