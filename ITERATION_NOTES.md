@@ -1,8 +1,8 @@
 # Edith - Iteration Notes
 
-## Current State: v1.4 Session Restore Working ✓
+## Current State: v1.5 Status Bar ✓
 
-Build and all tests verified. Session restore now works correctly.
+Build and all tests verified.
 
 ## What's Done
 - File > New Text Document (⌘N)
@@ -11,20 +11,19 @@ Build and all tests verified. Session restore now works correctly.
 - Restore Defaults button in settings
 - Line number gutter with proper alignment and styling
 - View > Show/Hide Line Numbers toggle (⇧⌘L)
+- View > Show/Hide Status Bar toggle (⇧⌘/)
 - View > Zoom In (⌘=), Zoom Out (⌘-), Actual Size (⌘0)
 - Format > Font > Bigger (⇧⌘+), Smaller (⌥⌘-)
 - Custom invisible character rendering (·↵△° etc.)
 - File change detection with reload/ignore banner
 - Help window (⌘?)
 - Session restore on launch (re-opens previously open **saved** documents)
-- 159 unit tests + 31 UI tests
-
-## Session Restore Implementation
-- SwiftUI's DocumentGroup doesn't use NSDocumentController, so we track documents manually
-- OpenDocumentsTracker singleton maintains a Set<URL> of open documents
-- ContentView registers/unregisters with tracker on onAppear/onDisappear
-- Data is stored in the sandboxed container:
-  `~/Library/Containers/com.edith.texteditor/Data/Library/Application Support/Edith/Restore/`
+- **Status Bar** with:
+  - Line and column display (Ln X, Col Y)
+  - Character, word, and line count
+  - Text encoding pop-up (UTF-8, UTF-16, ASCII, etc.)
+  - Line ending pop-up (LF, CR, CRLF)
+- 178 unit tests + 33 UI tests
 
 ## Tests
 Run `./scripts/test.sh` to verify all functionality.
