@@ -51,6 +51,7 @@ struct ContentView: View {
     // Per-document state (not persisted)
     @StateObject private var zoomState = DocumentZoomState()
     @StateObject private var fileWatcher = FileWatcher()
+    @StateObject private var syntaxHighlighter = SyntaxHighlighter()
     
     @State private var showFileChangedBanner = false
     @State private var cursorPosition = CursorPosition()
@@ -70,12 +71,22 @@ struct ContentView: View {
                 )
             }
             
-            EditorView(text: $document.text, zoomState: zoomState, cursorPosition: $cursorPosition)
-                .environmentObject(settingsManager)
+            EditorView(
+                text: $document.text,
+                zoomState: zoomState,
+                cursorPosition: $cursorPosition,
+                syntaxLanguage: document.syntaxLanguage,
+                syntaxHighlighter: syntaxHighlighter
+            )
+            .environmentObject(settingsManager)
             
             // Status Bar
             if settingsManager.showStatusBar {
-                StatusBar(document: $document, cursorPosition: $cursorPosition)
+                StatusBar(
+                    document: $document,
+                    cursorPosition: $cursorPosition,
+                    detectedLanguage: syntaxHighlighter.detectedLanguage
+                )
             }
         }
         .focusedSceneValue(\.documentZoomState, zoomState)

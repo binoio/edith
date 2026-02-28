@@ -8,6 +8,7 @@ import SwiftUI
 struct StatusBar: View {
     @Binding var document: TextDocument
     @Binding var cursorPosition: CursorPosition
+    var detectedLanguage: String?
     
     var body: some View {
         HStack(spacing: 16) {
@@ -26,6 +27,32 @@ struct StatusBar: View {
                 .foregroundColor(.secondary)
             
             Spacer()
+            
+            // Syntax Language picker
+            Menu {
+                ForEach(SyntaxLanguage.coreLanguages) { lang in
+                    languageButton(for: lang)
+                }
+                
+                Divider()
+                
+                Menu("More...") {
+                    ForEach(SyntaxLanguage.additionalLanguages) { lang in
+                        languageButton(for: lang)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(languageDisplayText)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            
+            Divider()
+                .frame(height: 12)
             
             // Line Ending picker
             Menu {
@@ -97,6 +124,30 @@ struct StatusBar: View {
         let lines = max(1, text.components(separatedBy: .newlines).count)
         
         return (characters, words, lines)
+    }
+    
+    private var languageDisplayText: String {
+        if document.syntaxLanguage == .auto {
+            if let detected = detectedLanguage {
+                return "Auto (\(detected))"
+            }
+            return "Auto-Detect"
+        }
+        return document.syntaxLanguage.displayName
+    }
+    
+    @ViewBuilder
+    private func languageButton(for lang: SyntaxLanguage) -> some View {
+        Button(action: {
+            document.syntaxLanguage = lang
+        }) {
+            HStack {
+                Text(lang.displayName)
+                if document.syntaxLanguage == lang {
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
     }
 }
 

@@ -17,6 +17,9 @@
 		008 /* DocumentRestoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107; };
 		009 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108; };
 		010 /* StatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109; };
+		011 /* SyntaxLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110; };
+		012 /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111; };
+		P01 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = P02 /* HighlightSwift */; };
 		T01 /* LineNumberGutterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T10; };
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
 		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
@@ -25,6 +28,7 @@
 		T07 /* SessionRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T16; };
 		T08 /* StatusBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T17; };
 		T09 /* FileWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T18; };
+		T0A /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T19; };
 		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
 		U03 /* SessionRestoreUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U12; };
 /* End PBXBuildFile section */
@@ -56,6 +60,9 @@
 		107 /* DocumentRestoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentRestoreManager.swift; sourceTree = "<group>"; };
 		108 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		109 /* StatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBar.swift; sourceTree = "<group>"; };
+		110 /* SyntaxLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxLanguage.swift; sourceTree = "<group>"; };
+		111 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		112 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		301 /* Edith.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Edith.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		401 /* Edith.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Edith.entitlements; sourceTree = "<group>"; };
@@ -68,6 +75,7 @@
 		T16 /* SessionRestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreTests.swift; sourceTree = "<group>"; };
 		T17 /* StatusBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarTests.swift; sourceTree = "<group>"; };
 		T18 /* FileWatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcherTests.swift; sourceTree = "<group>"; };
+		T19 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
 		U11 /* EdithUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		U12 /* SessionRestoreUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreUITests.swift; sourceTree = "<group>"; };
@@ -78,6 +86,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				P01 /* HighlightSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +115,9 @@
 				107 /* DocumentRestoreManager.swift */,
 				108 /* HelpView.swift */,
 				109 /* StatusBar.swift */,
+				110 /* SyntaxLanguage.swift */,
+				111 /* SyntaxHighlighter.swift */,
+				112 /* Info.plist */,
 				201 /* Assets.xcassets */,
 				401 /* Edith.entitlements */,
 			);
@@ -133,6 +145,7 @@
 				T16 /* SessionRestoreTests.swift */,
 				T17 /* StatusBarTests.swift */,
 				T18 /* FileWatcherTests.swift */,
+				T19 /* SyntaxHighlighterTests.swift */,
 			);
 			path = EdithTests;
 			sourceTree = "<group>";
@@ -162,6 +175,9 @@
 			dependencies = (
 			);
 			name = Edith;
+			packageProductDependencies = (
+				P02 /* HighlightSwift */,
+			);
 			productName = Edith;
 			productReference = 301 /* Edith.app */;
 			productType = "com.apple.product-type.application";
@@ -224,6 +240,9 @@
 				Base,
 			);
 			mainGroup = 600;
+			packageReferences = (
+				P03 /* XCRemoteSwiftPackageReference "HighlightSwift" */,
+			);
 			productRefGroup = 602 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -260,6 +279,8 @@
 				008 /* DocumentRestoreManager.swift in Sources */,
 				009 /* HelpView.swift in Sources */,
 				010 /* StatusBar.swift in Sources */,
+				011 /* SyntaxLanguage.swift in Sources */,
+				012 /* SyntaxHighlighter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,6 +296,7 @@
 				T07 /* SessionRestoreTests.swift in Sources */,
 				T08 /* StatusBarTests.swift in Sources */,
 				T09 /* FileWatcherTests.swift in Sources */,
+				T0A /* SyntaxHighlighterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,6 +479,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Edith/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Edith;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -484,6 +507,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Edith/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Edith;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -605,6 +629,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		P03 /* XCRemoteSwiftPackageReference "HighlightSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appstefan/HighlightSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		P02 /* HighlightSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = P03 /* XCRemoteSwiftPackageReference "HighlightSwift" */;
+			productName = HighlightSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 	};
 	rootObject = 900 /* Project object */;

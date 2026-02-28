@@ -44,8 +44,31 @@ struct TextDocument: FileDocument {
     var text: String
     var encoding: TextEncodingOption
     var lineEnding: LineEnding
+    var syntaxLanguage: SyntaxLanguage
     
-    static var readableContentTypes: [UTType] { [.plainText] }
+    // All file types the app can open
+    static var readableContentTypes: [UTType] {
+        [
+            .plainText,
+            .html,
+            .xml,
+            .json,
+            .yaml,
+            .shellScript,
+            .pythonScript,
+            .swiftSource,
+            .sourceCode,
+            // Custom types for common extensions
+            UTType("public.css") ?? .plainText,
+            UTType("public.markdown") ?? .plainText,
+            UTType("net.daringfireball.markdown") ?? .plainText,
+            UTType("public.sql") ?? .plainText,
+            UTType("com.netscape.javascript-source") ?? .plainText,
+        ].compactMap { $0 }
+    }
+    
+    // Default to plain text for new documents, but allow saving as any type
+    static var writableContentTypes: [UTType] { [.plainText] }
     
     init(text: String = "") {
         self.text = text
@@ -53,6 +76,7 @@ struct TextDocument: FileDocument {
         let encodingIndex = UserDefaults.standard.integer(forKey: "defaultTextEncoding")
         self.encoding = TextEncodingOption(rawValue: encodingIndex) ?? .utf8
         self.lineEnding = LineEnding.detect(in: text)
+        self.syntaxLanguage = .auto
     }
     
     init(configuration: ReadConfiguration) throws {
@@ -76,6 +100,9 @@ struct TextDocument: FileDocument {
         
         // Detect line ending from content
         lineEnding = LineEnding.detect(in: text)
+        
+        // Detect syntax from content type or filename
+        syntaxLanguage = SyntaxLanguage.detect(from: configuration.contentType, filename: configuration.file.preferredFilename)
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
