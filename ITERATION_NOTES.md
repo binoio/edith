@@ -1,8 +1,8 @@
 # Edith - Iteration Notes
 
-## Current State: v1.6 File Watcher Fixed ✓
+## Current State: v1.7 Syntax Highlighting ✓
 
-Build and all tests verified.
+Build and all tests verified. On feature/syntax-highlighting branch.
 
 ## What's Done
 - File > New Text Document (⌘N)
@@ -16,23 +16,29 @@ Build and all tests verified.
 - Format > Font > Bigger (⇧⌘+), Smaller (⌥⌘-)
 - Custom invisible character rendering (·↵△° etc.)
 - File change detection with reload/ignore banner
-  - Detects external changes (e.g., vim edits)
-  - Suppresses alerts for Edith's own saves
-  - Re-establishes watch after each change (handles vim's delete+rename)
 - Help window (⌘?)
-- Session restore on launch (re-opens previously open **saved** documents)
-- **Status Bar** with:
-  - Line and column display (Ln X, Col Y)
-  - Character, word, and line count
-  - Text encoding pop-up (UTF-8, UTF-16, ASCII, etc.)
-  - Line ending pop-up (LF, CR, CRLF)
-- 187 unit tests + 33 UI tests
+- Session restore on launch
+- **Status Bar** with line/column, counts, encoding, line ending, **syntax language picker**
+- **Syntax Highlighting** via HighlightSwift:
+  - Auto-detects from file extension on open
+  - Supports: HTML, CSS, Python, JSON, Markdown, JavaScript, Swift, XML, YAML, SQL, Shell
+  - Manual override via status bar picker
+  - In-place coloring preserves cursor position
+  - Plain text files have no highlighting
+  - GitHub theme colors (light/dark)
+- Document type registration for all supported file types
+
+## Next Steps
+1. Merge feature/syntax-highlighting to main when ready
+2. Consider adding more syntax languages (Ruby, Go, Rust, C/C++, Java)
+3. Consider adding syntax theme selection in Settings
 
 ## Tests
 Run `./scripts/test.sh` to verify all functionality.
 
 ## Tech Stack
 - SwiftUI + NSTextView wrapper, @AppStorage, DocumentGroup
+- HighlightSwift for syntax highlighting
 - Target: macOS 13.0+
 
 ## Scripts
