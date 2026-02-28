@@ -48,6 +48,12 @@ struct EditorView: NSViewRepresentable {
         
         textView.font = font
         scrollView.lineNumberView.font = font
+        
+        // Set baseline width when at default zoom (zoom=1.0)
+        if zoomState.zoom == 1.0 {
+            scrollView.lineNumberView.setBaselineWidth()
+        }
+        
         scrollView.showLineNumbers = settingsManager.showLineNumbers
         textView.layoutManager?.showsInvisibleCharacters = settingsManager.showInvisibleCharacters
     }
@@ -178,28 +184,34 @@ class LineNumberView: NSView {
         }
     }
     
-    // Fixed minimum width based on 3 digits at base font size (13pt)
-    private static let minimumWidth: CGFloat = {
-        let baseFont = NSFont.monospacedDigitSystemFont(ofSize: 13 * 0.85, weight: .regular)
-        let sample = "888"
-        let attrs: [NSAttributedString.Key: Any] = [.font: baseFont]
-        return sample.size(withAttributes: attrs).width + 16
-    }()
+    // Track the baseline width at default zoom (zoom=1.0)
+    private var baselineWidth: CGFloat = 0
     
-    // Calculate width: fixed minimum, expands only when font/magnification requires more
-    var requiredWidth: CGFloat {
-        guard let textView = textView else { return Self.minimumWidth }
+    // Set the baseline width - call this when at default zoom level
+    func setBaselineWidth() {
+        baselineWidth = calculateCurrentWidth()
+    }
+    
+    // Calculate width based on current font
+    private func calculateCurrentWidth() -> CGFloat {
+        guard let textView = textView else { return 40 }
         let lineCount = max(1, textView.string.components(separatedBy: "\n").count)
         let digits = max(3, String(lineCount).count)
         
-        // Use the same font as drawing (font.pointSize * 0.85)
         let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let sampleNumber = String(repeating: "8", count: digits)
         let attrs: [NSAttributedString.Key: Any] = [.font: lineNumberFont]
-        let textWidth = sampleNumber.size(withAttributes: attrs).width + 16
-        
-        // Return the larger of minimum fixed width or actual required width
-        return max(Self.minimumWidth, textWidth)
+        return sampleNumber.size(withAttributes: attrs).width + 16
+    }
+    
+    // Width never shrinks below baseline (default zoom width)
+    var requiredWidth: CGFloat {
+        let currentWidth = calculateCurrentWidth()
+        // If baseline not set yet, use current as baseline
+        if baselineWidth == 0 {
+            baselineWidth = currentWidth
+        }
+        return max(baselineWidth, currentWidth)
     }
     
     // Use flipped coordinates to match NSTextView

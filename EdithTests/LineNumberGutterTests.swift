@@ -342,49 +342,52 @@ final class LineNumberVisualRegressionTests: XCTestCase {
     
     // MARK: - Gutter Width Behavior Tests
     
-    func testGutterWidthHasFixedMinimum() {
+    func testGutterWidthHasBaseline() {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let lineNumberView = scrollView.lineNumberView
         
-        // At default font size, width should be the fixed minimum
+        // Set baseline at current font
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let defaultWidth = lineNumberView.requiredWidth
+        lineNumberView.setBaselineWidth()
+        let baselineWidth = lineNumberView.requiredWidth
         
-        // At smaller font size, width should still be the fixed minimum
+        // At smaller font size, width should still be the baseline
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
         let smallerFontWidth = lineNumberView.requiredWidth
         
-        XCTAssertEqual(defaultWidth, smallerFontWidth, "Gutter should maintain fixed minimum width at smaller font sizes")
+        XCTAssertEqual(baselineWidth, smallerFontWidth, "Gutter should maintain baseline width at smaller font sizes")
     }
     
     func testGutterWidthExpandsWhenFontRequiresMore() {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let lineNumberView = scrollView.lineNumberView
         
-        // Get minimum width at base font
+        // Set baseline at default font
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let minimumWidth = lineNumberView.requiredWidth
+        lineNumberView.setBaselineWidth()
+        let baselineWidth = lineNumberView.requiredWidth
         
         // At larger font size, width should expand to accommodate
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 26, weight: .regular)
         let largerFontWidth = lineNumberView.requiredWidth
         
-        XCTAssertGreaterThan(largerFontWidth, minimumWidth, "Gutter should expand when larger font requires more space")
+        XCTAssertGreaterThan(largerFontWidth, baselineWidth, "Gutter should expand when larger font requires more space")
     }
     
     func testGutterWidthExpandsForMagnification() {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let lineNumberView = scrollView.lineNumberView
         
-        // Get minimum width
+        // Set baseline at default zoom
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let minimumWidth = lineNumberView.requiredWidth
+        lineNumberView.setBaselineWidth()
+        let baselineWidth = lineNumberView.requiredWidth
         
         // Simulate 2x magnification
         lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13 * 2.0, weight: .regular)
         let zoomedWidth = lineNumberView.requiredWidth
         
-        XCTAssertGreaterThan(zoomedWidth, minimumWidth, "Gutter should expand when magnification requires more space")
+        XCTAssertGreaterThan(zoomedWidth, baselineWidth, "Gutter should expand when magnification requires more space")
     }
     
     func testGutterWidthExpandsForHighLineCount() {
@@ -392,30 +395,33 @@ final class LineNumberVisualRegressionTests: XCTestCase {
         let lineNumberView = scrollView.lineNumberView
         let textView = scrollView.textView
         
-        // Width with few lines (3 digits minimum)
+        // Set baseline with few lines
         textView.string = "Line 1\nLine 2\nLine 3"
-        let width3Lines = lineNumberView.requiredWidth
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        lineNumberView.setBaselineWidth()
+        let baselineWidth = lineNumberView.requiredWidth
         
         // Width with many lines (5 digits needed)
         textView.string = (1...10000).map { "Line \($0)" }.joined(separator: "\n")
         let width10000Lines = lineNumberView.requiredWidth
         
-        XCTAssertGreaterThan(width10000Lines, width3Lines, "Gutter should expand for more line number digits")
+        XCTAssertGreaterThan(width10000Lines, baselineWidth, "Gutter should expand for more line number digits")
     }
     
-    func testGutterWidthNeverShrinksBelowMinimum() {
+    func testGutterWidthNeverShrinksBelowBaseline() {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let lineNumberView = scrollView.lineNumberView
         
-        // Get the minimum width at base size
-        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let minimumWidth = lineNumberView.requiredWidth
+        // Set baseline at a moderate font size
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+        lineNumberView.setBaselineWidth()
+        let baselineWidth = lineNumberView.requiredWidth
         
-        // Try various smaller font sizes - width should never go below minimum
-        for size in [8.0, 9.0, 10.0, 11.0, 12.0] {
+        // Try various smaller font sizes - width should never go below baseline
+        for size in [8.0, 10.0, 12.0, 14.0, 15.0] {
             lineNumberView.font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
-            XCTAssertGreaterThanOrEqual(lineNumberView.requiredWidth, minimumWidth, 
-                "Gutter should never shrink below fixed minimum at \(size)pt")
+            XCTAssertGreaterThanOrEqual(lineNumberView.requiredWidth, baselineWidth, 
+                "Gutter should never shrink below baseline at \(size)pt")
         }
     }
 }
