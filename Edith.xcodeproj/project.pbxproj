@@ -16,6 +16,7 @@
 		007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 201; };
 		T01 /* LineNumberGutterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T10; };
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
+		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +42,7 @@
 		T10 /* LineNumberGutterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberGutterTests.swift; sourceTree = "<group>"; };
 		T11 /* EdithTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T12 /* TextEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEncodingTests.swift; sourceTree = "<group>"; };
+		T13 /* MenuStructureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuStructureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +94,7 @@
 			children = (
 				T10 /* LineNumberGutterTests.swift */,
 				T12 /* TextEncodingTests.swift */,
+				T13 /* MenuStructureTests.swift */,
 			);
 			path = EdithTests;
 			sourceTree = "<group>";
@@ -198,6 +201,7 @@
 			files = (
 				T01 /* LineNumberGutterTests.swift in Sources */,
 				T03 /* TextEncodingTests.swift in Sources */,
+				T04 /* MenuStructureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

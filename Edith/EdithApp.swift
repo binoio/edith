@@ -24,7 +24,8 @@ struct EdithApp: App {
                 .keyboardShortcut("n", modifiers: .command)
             }
             
-            CommandMenu("View") {
+            CommandGroup(after: .toolbar) {
+                Divider()
                 Button(settingsManager.showLineNumbers ? "Hide Line Numbers" : "Show Line Numbers") {
                     settingsManager.showLineNumbers.toggle()
                 }
