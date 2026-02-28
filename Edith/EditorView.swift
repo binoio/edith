@@ -258,11 +258,18 @@ class LineNumberView: NSView {
         let content = textView.string as NSString
         let inset = textView.textContainerInset
         
+        // Calculate max width for right-alignment (based on total line count)
+        let totalLines = max(1, content.components(separatedBy: "\n").count)
+        let maxDigits = max(3, String(totalLines).count)
+        let maxNumberWidth = String(repeating: "8", count: maxDigits).size(withAttributes: attrs).width
+        // Center the number column in the gutter
+        let columnLeftEdge = (bounds.width - maxNumberWidth) / 2
+        
         if content.length == 0 {
             let s = "1"
             let sz = s.size(withAttributes: attrs)
-            // Center-align horizontally
-            let xPos = (bounds.width - sz.width) / 2
+            // Right-align within centered column
+            let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
             s.draw(at: NSPoint(x: xPos, y: inset.height), withAttributes: attrs)
             return
         }
@@ -296,8 +303,8 @@ class LineNumberView: NSView {
             
             let s = "\(lineNum)"
             let sz = s.size(withAttributes: attrs)
-            // Center-align horizontally within gutter
-            let xPos = (bounds.width - sz.width) / 2
+            // Right-align within centered column
+            let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
             let pt = NSPoint(x: xPos, y: yPos + (lineRect.height - sz.height) / 2)
             s.draw(at: pt, withAttributes: attrs)
             
