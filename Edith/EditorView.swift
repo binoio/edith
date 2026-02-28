@@ -178,11 +178,14 @@ class LineNumberView: NSView {
         }
     }
     
+    // Fixed base size for gutter width - does not respond to magnification/font size
+    private let baseWidthFontSize: CGFloat = 13.0
+    
     var requiredWidth: CGFloat {
         guard let textView = textView else { return 40 }
         let lineCount = max(1, textView.string.components(separatedBy: "\n").count)
         let digits = max(3, String(lineCount).count)
-        return CGFloat(digits) * font.pointSize * 0.7 + 16
+        return CGFloat(digits) * baseWidthFontSize * 0.7 + 16
     }
     
     // Use flipped coordinates to match NSTextView

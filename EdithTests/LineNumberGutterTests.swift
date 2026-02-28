@@ -339,6 +339,70 @@ final class LineNumberVisualRegressionTests: XCTestCase {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         XCTAssertEqual(scrollView.textView.textColor, NSColor.textColor, "Text area should use textColor")
     }
+    
+    // MARK: - Gutter Width Stability Tests
+    
+    func testGutterWidthDoesNotChangeWithFontSize() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let lineNumberView = scrollView.lineNumberView
+        
+        // Get initial width with default font
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let widthAt13pt = lineNumberView.requiredWidth
+        
+        // Change font size - width should remain the same
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 26, weight: .regular)
+        let widthAt26pt = lineNumberView.requiredWidth
+        
+        XCTAssertEqual(widthAt13pt, widthAt26pt, "Gutter width should not change with font size")
+    }
+    
+    func testGutterWidthDoesNotChangeWithMagnification() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let lineNumberView = scrollView.lineNumberView
+        
+        // Get initial width
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let initialWidth = lineNumberView.requiredWidth
+        
+        // Simulate magnification by changing font (as EditorView does)
+        lineNumberView.font = NSFont.monospacedSystemFont(ofSize: 13 * 2.0, weight: .regular)
+        let zoomedWidth = lineNumberView.requiredWidth
+        
+        XCTAssertEqual(initialWidth, zoomedWidth, "Gutter width should not respond to magnification")
+    }
+    
+    func testGutterWidthOnlyChangesWithLineCount() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let lineNumberView = scrollView.lineNumberView
+        let textView = scrollView.textView
+        
+        // Width with few lines
+        textView.string = "Line 1\nLine 2\nLine 3"
+        let width3Lines = lineNumberView.requiredWidth
+        
+        // Width with many lines (4+ digits)
+        textView.string = (1...10000).map { "Line \($0)" }.joined(separator: "\n")
+        let width10000Lines = lineNumberView.requiredWidth
+        
+        XCTAssertGreaterThan(width10000Lines, width3Lines, "Gutter width should increase for more line number digits")
+    }
+    
+    func testGutterWidthIsConsistentAcrossMultipleFontChanges() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let lineNumberView = scrollView.lineNumberView
+        
+        var widths: [CGFloat] = []
+        
+        for size in [10.0, 13.0, 16.0, 20.0, 30.0, 50.0] {
+            lineNumberView.font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+            widths.append(lineNumberView.requiredWidth)
+        }
+        
+        // All widths should be identical
+        let uniqueWidths = Set(widths)
+        XCTAssertEqual(uniqueWidths.count, 1, "Gutter width should be constant regardless of font size changes")
+    }
 }
 
 // Extension to check if font is fixed pitch
