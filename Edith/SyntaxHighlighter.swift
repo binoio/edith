@@ -61,6 +61,14 @@ class SyntaxHighlighter: ObservableObject {
         textStorage: NSTextStorage,
         baseFont: NSFont
     ) async {
+        // Plain text = skip highlighting entirely
+        if language == .plain {
+            clearHighlighting(textStorage: textStorage, baseFont: baseFont)
+            detectedLanguage = nil
+            lastHighlightedText = text
+            lastHighlightedLanguage = language
+            return
+        }
         await performHighlighting(text: text, language: language, textStorage: textStorage, baseFont: baseFont)
     }
     
@@ -70,6 +78,12 @@ class SyntaxHighlighter: ObservableObject {
         textStorage: NSTextStorage,
         baseFont: NSFont
     ) async {
+        // Plain text should not reach here, but guard anyway
+        if language == .plain {
+            clearHighlighting(textStorage: textStorage, baseFont: baseFont)
+            return
+        }
+        
         // Skip if nothing changed
         if text == lastHighlightedText && language == lastHighlightedLanguage {
             return
@@ -124,11 +138,35 @@ class SyntaxHighlighter: ObservableObject {
         to textStorage: NSTextStorage,
         baseFont: NSFont
     ) {
-        let nsHighlighted = NSAttributedString(attributedText)
-        
-        // Verify lengths match
-        guard nsHighlighted.length == textStorage.length else {
+        // Convert AttributedString back to NSAttributedString using AppKit scope
+        let nsHighlighted: NSAttributedString
+        do {
+            nsHighlighted = try NSAttributedString(attributedText, including: \.appKit)
+        } catch {
             return
+        }
+        
+        // HighlightSwift trims whitespace, so we need to find where the trimmed text
+        // starts and ends in the original text storage
+        let highlightedText = nsHighlighted.string
+        let storageText = textStorage.string
+        
+        // Find the range in storage that corresponds to the highlighted text
+        let trimmedStorage = storageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If texts don't match after trimming, skip highlighting
+        guard trimmedStorage == highlightedText else {
+            return
+        }
+        
+        // Calculate leading whitespace offset
+        var leadingOffset = 0
+        for char in storageText {
+            if char.isWhitespace || char.isNewline {
+                leadingOffset += 1
+            } else {
+                break
+            }
         }
         
         textStorage.beginEditing()
@@ -139,10 +177,16 @@ class SyntaxHighlighter: ObservableObject {
         textStorage.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
         textStorage.addAttribute(.font, value: baseFont, range: fullRange)
         
-        // Now apply colors from the highlighted text
-        nsHighlighted.enumerateAttribute(.foregroundColor, in: fullRange, options: []) { value, range, _ in
-            if let color = value as? NSColor {
-                textStorage.addAttribute(.foregroundColor, value: color, range: range)
+        // Now apply colors from the highlighted text, adjusting for leading whitespace
+        let highlightRange = NSRange(location: 0, length: nsHighlighted.length)
+        nsHighlighted.enumerateAttribute(.foregroundColor, in: highlightRange, options: []) { value, range, _ in
+            if let nsColor = value as? NSColor {
+                // Offset the range by leading whitespace
+                let adjustedRange = NSRange(location: range.location + leadingOffset, length: range.length)
+                // Ensure we don't go past the text storage bounds
+                if adjustedRange.location + adjustedRange.length <= textStorage.length {
+                    textStorage.addAttribute(.foregroundColor, value: nsColor, range: adjustedRange)
+                }
             }
         }
         
