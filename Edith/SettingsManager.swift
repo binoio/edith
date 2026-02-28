@@ -78,6 +78,7 @@ class SettingsManager: ObservableObject {
     @AppStorage("magnification") var magnification: Double = 1.0
     @AppStorage("spacesPerTab") var spacesPerTab: Int = 4
     @AppStorage("showInvisibleCharacters") var showInvisibleCharacters: Bool = false
+    @AppStorage("showLineNumbers") var showLineNumbers: Bool = true
     
     // Default values for restoration
     static let defaultFontName = "Menlo"
@@ -85,6 +86,7 @@ class SettingsManager: ObservableObject {
     static let defaultMagnification: Double = 1.0
     static let defaultSpacesPerTab: Int = 4
     static let defaultShowInvisibleCharacters = false
+    static let defaultShowLineNumbers = true
     static let defaultTextEncoding = TextEncodingOption.utf8.rawValue
     static let defaultAppearanceMode = AppearanceMode.system.rawValue
     
@@ -115,6 +117,7 @@ class SettingsManager: ObservableObject {
         magnification = Self.defaultMagnification
         spacesPerTab = Self.defaultSpacesPerTab
         showInvisibleCharacters = Self.defaultShowInvisibleCharacters
+        showLineNumbers = Self.defaultShowLineNumbers
         defaultTextEncoding = Self.defaultTextEncoding
         appearanceMode = Self.defaultAppearanceMode
     }

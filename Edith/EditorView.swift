@@ -43,6 +43,7 @@ struct EditorView: NSViewRepresentable {
         
         textView.font = font
         scrollView.lineNumberView.font = font
+        scrollView.showLineNumbers = settingsManager.showLineNumbers
         textView.layoutManager?.showsInvisibleCharacters = settingsManager.showInvisibleCharacters
     }
     
@@ -72,6 +73,13 @@ class LineNumberScrollView: NSView {
     let scrollView: NSScrollView
     let textView: NSTextView
     let lineNumberView: LineNumberView
+    
+    var showLineNumbers: Bool = true {
+        didSet {
+            lineNumberView.isHidden = !showLineNumbers
+            needsLayout = true
+        }
+    }
     
     override init(frame: NSRect) {
         // Create text view
@@ -144,9 +152,14 @@ class LineNumberScrollView: NSView {
     
     override func layout() {
         super.layout()
-        let gutterWidth: CGFloat = lineNumberView.requiredWidth
-        lineNumberView.frame = NSRect(x: 0, y: 0, width: gutterWidth, height: bounds.height)
-        scrollView.frame = NSRect(x: gutterWidth, y: 0, width: bounds.width - gutterWidth, height: bounds.height)
+        if showLineNumbers {
+            let gutterWidth: CGFloat = lineNumberView.requiredWidth
+            lineNumberView.frame = NSRect(x: 0, y: 0, width: gutterWidth, height: bounds.height)
+            scrollView.frame = NSRect(x: gutterWidth, y: 0, width: bounds.width - gutterWidth, height: bounds.height)
+        } else {
+            lineNumberView.frame = .zero
+            scrollView.frame = bounds
+        }
     }
 }
 

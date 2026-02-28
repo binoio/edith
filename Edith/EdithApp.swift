@@ -23,6 +23,13 @@ struct EdithApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
+            
+            CommandMenu("View") {
+                Button(settingsManager.showLineNumbers ? "Hide Line Numbers" : "Show Line Numbers") {
+                    settingsManager.showLineNumbers.toggle()
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+            }
         }
         
         Settings {

@@ -270,6 +270,46 @@ final class LineNumberGutterIntegrationTests: XCTestCase {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         XCTAssertTrue(scrollView.textView.isVerticallyResizable, "Text view should be vertically resizable")
     }
+    
+    func testShowLineNumbersDefaultsToTrue() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        XCTAssertTrue(scrollView.showLineNumbers, "Line numbers should be shown by default")
+    }
+    
+    func testHideLineNumbers() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        scrollView.showLineNumbers = false
+        XCTAssertTrue(scrollView.lineNumberView.isHidden, "Line number view should be hidden")
+    }
+    
+    func testShowLineNumbers() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        scrollView.showLineNumbers = false
+        scrollView.showLineNumbers = true
+        XCTAssertFalse(scrollView.lineNumberView.isHidden, "Line number view should be visible")
+    }
+    
+    func testLayoutWithLineNumbersHidden() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        scrollView.showLineNumbers = false
+        scrollView.layout()
+        XCTAssertEqual(scrollView.scrollView.frame.origin.x, 0, "Scroll view should start at x=0 when line numbers hidden")
+        XCTAssertEqual(scrollView.scrollView.frame.width, 600, "Scroll view should use full width when line numbers hidden")
+    }
+    
+    func testLayoutWithLineNumbersVisible() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        scrollView.showLineNumbers = true
+        scrollView.layout()
+        XCTAssertGreaterThan(scrollView.scrollView.frame.origin.x, 0, "Scroll view should be offset when line numbers visible")
+        XCTAssertLessThan(scrollView.scrollView.frame.width, 600, "Scroll view should not use full width when line numbers visible")
+    }
+    
+    func testSettingsManagerShowLineNumbersDefault() {
+        let settings = SettingsManager()
+        settings.restoreDefaults()
+        XCTAssertTrue(settings.showLineNumbers, "showLineNumbers should default to true")
+    }
 }
 
 // MARK: - Visual Regression Tests
