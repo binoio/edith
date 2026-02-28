@@ -82,10 +82,31 @@ struct ContentView: View {
         }
         .onAppear {
             startWatchingFile()
+            registerWithTracker()
         }
         .onDisappear {
             fileWatcher.stopWatching()
+            unregisterFromTracker()
         }
+    }
+    
+    private func getDocumentFileURL() -> URL? {
+        if let windowController = NSApp.keyWindow?.windowController,
+           let document = windowController.document as? NSDocument {
+            return document.fileURL
+        }
+        return nil
+    }
+    
+    private func registerWithTracker() {
+        // Delay to ensure window is fully set up
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            OpenDocumentsTracker.shared.documentOpened(getDocumentFileURL())
+        }
+    }
+    
+    private func unregisterFromTracker() {
+        OpenDocumentsTracker.shared.documentClosed(getDocumentFileURL())
     }
     
     private func startWatchingFile() {

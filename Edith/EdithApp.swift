@@ -7,6 +7,31 @@
 
 import SwiftUI
 
+// MARK: - Open Documents Tracker (for SwiftUI DocumentGroup)
+class OpenDocumentsTracker: ObservableObject {
+    static let shared = OpenDocumentsTracker()
+    
+    @Published private(set) var openDocuments: Set<URL> = []
+    
+    func documentOpened(_ url: URL?) {
+        guard let url = url else { return }
+        DispatchQueue.main.async {
+            self.openDocuments.insert(url)
+        }
+    }
+    
+    func documentClosed(_ url: URL?) {
+        guard let url = url else { return }
+        DispatchQueue.main.async {
+            self.openDocuments.remove(url)
+        }
+    }
+    
+    func getOpenDocumentPaths() -> [String] {
+        return openDocuments.map { $0.path }
+    }
+}
+
 // MARK: - App Delegate for session management
 class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     var settingsManager: SettingsManager?
@@ -73,30 +98,26 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     private func saveOpenDocumentsState() {
-        // Always save, even if empty - this ensures the directory exists
-        // and clears any stale data if no documents are open
-        
         guard reopenDocumentsOnLaunch else {
             DocumentRestoreManager.shared.clearOpenDocuments()
             return
         }
         
-        // Save list of open documents
+        // Use the tracker instead of NSDocumentController (SwiftUI DocumentGroup doesn't use NSDocumentController)
+        let paths = OpenDocumentsTracker.shared.getOpenDocumentPaths()
+        
         var openDocs: [DocumentRestoreManager.OpenDocumentInfo] = []
         
-        for document in NSDocumentController.shared.documents {
-            guard let fileURL = document.fileURL else { continue }
-            
-            let restoreID = fileURL.lastPathComponent.replacingOccurrences(of: ".", with: "_")
+        for path in paths {
+            let restoreID = URL(fileURLWithPath: path).lastPathComponent.replacingOccurrences(of: ".", with: "_")
             let info = DocumentRestoreManager.OpenDocumentInfo(
-                path: fileURL.path,
-                hasUnsavedChanges: document.hasUnautosavedChanges,
+                path: path,
+                hasUnsavedChanges: false,
                 restoreID: restoreID
             )
             openDocs.append(info)
         }
         
-        // Always save, even if array is empty (to clear old data)
         DocumentRestoreManager.shared.saveOpenDocuments(openDocs)
     }
 }

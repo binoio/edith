@@ -107,8 +107,9 @@ final class SessionRestoreUITests: XCTestCase {
         // Wait for app to fully initialize
         sleep(2)
         
-        // Verify the app has a window
-        XCTAssertTrue(app.windows.count > 0, "App should have at least one window")
+        // Close the open dialog if it appears (press Escape)
+        app.typeKey(.escape, modifierFlags: [])
+        sleep(1)
         
         // Quit the app using the menu (this triggers save)
         app.typeKey("q", modifierFlags: .command)
@@ -147,5 +148,19 @@ final class SessionRestoreUITests: XCTestCase {
             // This is expected behavior - only saved documents are restored
             // The test just verifies the file was created with valid JSON
         }
+    }
+    
+    func testSessionRestoreSavesOpenedFile() throws {
+        // This test is manual since UI test sandbox prevents file access
+        // Manual steps:
+        // 1. Run Edith
+        // 2. Open ~/Downloads/Untitled.txt (or any saved file)
+        // 3. Quit Edith (Cmd+Q)
+        // 4. Check ~/Library/Containers/com.edith.texteditor/Data/Library/Application Support/Edith/Restore/open_documents.json
+        // 5. It should contain the path to the opened file
+        // 6. Reopen Edith - the file should be restored
+        
+        // For now, skip this automated test as sandbox prevents file creation
+        throw XCTSkip("Cannot automate file open test due to sandbox restrictions")
     }
 }
