@@ -38,19 +38,19 @@ struct EdithApp: App {
                     zoomState?.zoomIn()
                 }
                 .keyboardShortcut("+", modifiers: [.command, .option])
-                .disabled(zoomState == nil || (zoomState?.zoom ?? 1.0) >= 4.0)
+                .disabled(zoomState == nil)
                 
                 Button("Zoom Out") {
                     zoomState?.zoomOut()
                 }
                 .keyboardShortcut("-", modifiers: [.command, .option])
-                .disabled(zoomState == nil || (zoomState?.zoom ?? 1.0) <= 0.25)
+                .disabled(zoomState == nil)
                 
                 Button("Actual Size") {
                     zoomState?.resetZoom()
                 }
                 .keyboardShortcut("1", modifiers: [.command, .option])
-                .disabled(zoomState == nil || zoomState?.zoom == 1.0)
+                .disabled(zoomState == nil)
             }
             
             // Format > Font menu for font size adjustments
