@@ -196,4 +196,104 @@ final class ZoomFunctionalityTests: XCTestCase {
         XCTAssertEqual(settings.magnification, originalMagnification,
             "Document zoom operations should not affect settings magnification")
     }
+    
+    // MARK: - DocumentZoomState Tests
+    
+    func testDocumentZoomStateResetZoom() {
+        let state = DocumentZoomState()
+        state.zoom = 2.5
+        state.resetZoom()
+        XCTAssertEqual(state.zoom, 1.0, "resetZoom() should set zoom to exactly 1.0")
+    }
+    
+    func testDocumentZoomStateZoomIn() {
+        let state = DocumentZoomState()
+        state.zoom = 1.0
+        state.zoomIn()
+        XCTAssertEqual(state.zoom, 1.25, "zoomIn() should multiply by 1.25")
+    }
+    
+    func testDocumentZoomStateZoomOut() {
+        let state = DocumentZoomState()
+        state.zoom = 1.0
+        state.zoomOut()
+        XCTAssertEqual(state.zoom, 0.8, "zoomOut() should divide by 1.25")
+    }
+    
+    func testDocumentZoomStateResetFromZoomedIn() {
+        let state = DocumentZoomState()
+        state.zoomIn()
+        state.zoomIn()
+        state.zoomIn()
+        XCTAssertGreaterThan(state.zoom, 1.0)
+        state.resetZoom()
+        XCTAssertEqual(state.zoom, 1.0, "resetZoom() should reset to 1.0 from zoomed in state")
+    }
+    
+    func testDocumentZoomStateResetFromZoomedOut() {
+        let state = DocumentZoomState()
+        state.zoomOut()
+        state.zoomOut()
+        state.zoomOut()
+        XCTAssertLessThan(state.zoom, 1.0)
+        state.resetZoom()
+        XCTAssertEqual(state.zoom, 1.0, "resetZoom() should reset to 1.0 from zoomed out state")
+    }
+    
+    func testDocumentZoomStateMaximumZoom() {
+        let state = DocumentZoomState()
+        for _ in 0..<20 {
+            state.zoomIn()
+        }
+        XCTAssertEqual(state.zoom, 4.0, "Zoom should cap at 4.0")
+    }
+    
+    func testDocumentZoomStateMinimumZoom() {
+        let state = DocumentZoomState()
+        for _ in 0..<20 {
+            state.zoomOut()
+        }
+        XCTAssertEqual(state.zoom, 0.25, "Zoom should floor at 0.25")
+    }
+    
+    // MARK: - Menu Disabled State Tests
+    
+    func testActualSizeDisabledWhenAtDefaultZoom() {
+        let state = DocumentZoomState()
+        // At default zoom (1.0), Actual Size should be disabled
+        let shouldBeDisabled = state.zoom == 1.0
+        XCTAssertTrue(shouldBeDisabled, "Actual Size should be disabled when zoom is 1.0")
+    }
+    
+    func testActualSizeEnabledWhenZoomedIn() {
+        let state = DocumentZoomState()
+        state.zoomIn()
+        let shouldBeDisabled = state.zoom == 1.0
+        XCTAssertFalse(shouldBeDisabled, "Actual Size should be enabled when zoomed in")
+    }
+    
+    func testActualSizeEnabledWhenZoomedOut() {
+        let state = DocumentZoomState()
+        state.zoomOut()
+        let shouldBeDisabled = state.zoom == 1.0
+        XCTAssertFalse(shouldBeDisabled, "Actual Size should be enabled when zoomed out")
+    }
+    
+    func testZoomInDisabledAtMaximum() {
+        let state = DocumentZoomState()
+        for _ in 0..<20 {
+            state.zoomIn()
+        }
+        let shouldBeDisabled = state.zoom >= 4.0
+        XCTAssertTrue(shouldBeDisabled, "Zoom In should be disabled at maximum zoom")
+    }
+    
+    func testZoomOutDisabledAtMinimum() {
+        let state = DocumentZoomState()
+        for _ in 0..<20 {
+            state.zoomOut()
+        }
+        let shouldBeDisabled = state.zoom <= 0.25
+        XCTAssertTrue(shouldBeDisabled, "Zoom Out should be disabled at minimum zoom")
+    }
 }
