@@ -10,8 +10,7 @@ import SwiftUI
 @main
 struct EdithApp: App {
     @StateObject private var settingsManager = SettingsManager()
-    @FocusedValue(\.documentZoom) var documentZoom
-    @FocusedValue(\.documentFontSize) var documentFontSize
+    @FocusedValue(\.documentZoomState) var zoomState
     
     var body: some Scene {
         DocumentGroup(newDocument: TextDocument()) { file in
@@ -36,48 +35,38 @@ struct EdithApp: App {
                 Divider()
                 
                 Button("Zoom In") {
-                    if let zoom = documentZoom {
-                        zoom.wrappedValue = min(zoom.wrappedValue * 1.25, 4.0)
-                    }
+                    zoomState?.zoomIn()
                 }
                 .keyboardShortcut("+", modifiers: [.command, .option])
-                .disabled(documentZoom == nil)
+                .disabled(zoomState == nil)
                 
                 Button("Zoom Out") {
-                    if let zoom = documentZoom {
-                        zoom.wrappedValue = max(zoom.wrappedValue / 1.25, 0.25)
-                    }
+                    zoomState?.zoomOut()
                 }
                 .keyboardShortcut("-", modifiers: [.command, .option])
-                .disabled(documentZoom == nil)
+                .disabled(zoomState == nil)
                 
                 Button("Actual Size") {
-                    if let zoom = documentZoom {
-                        zoom.wrappedValue = 1.0
-                    }
+                    zoomState?.resetZoom()
                 }
                 .keyboardShortcut("0", modifiers: [.command, .option])
-                .disabled(documentZoom == nil)
+                .disabled(zoomState == nil)
             }
             
             // Format > Font menu for font size adjustments
             CommandMenu("Format") {
                 Menu("Font") {
                     Button("Bigger") {
-                        if let fontSize = documentFontSize {
-                            fontSize.wrappedValue += 1.0
-                        }
+                        zoomState?.increaseFontSize()
                     }
                     .keyboardShortcut("+", modifiers: .command)
-                    .disabled(documentFontSize == nil)
+                    .disabled(zoomState == nil)
                     
                     Button("Smaller") {
-                        if let fontSize = documentFontSize {
-                            fontSize.wrappedValue = max(fontSize.wrappedValue - 1.0, -settingsManager.fontSize + 6)
-                        }
+                        zoomState?.decreaseFontSize(minOffset: -settingsManager.fontSize + 6)
                     }
                     .keyboardShortcut("-", modifiers: .command)
-                    .disabled(documentFontSize == nil)
+                    .disabled(zoomState == nil)
                 }
             }
         }

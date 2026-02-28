@@ -5,24 +5,41 @@
 
 import SwiftUI
 
-// FocusedValue for per-document zoom and font size adjustments
-struct DocumentZoomKey: FocusedValueKey {
-    typealias Value = Binding<Double>
+// Observable wrapper for per-document zoom state
+class DocumentZoomState: ObservableObject {
+    @Published var zoom: Double = 1.0
+    @Published var fontSizeOffset: Double = 0.0
+    
+    func resetZoom() {
+        zoom = 1.0
+    }
+    
+    func zoomIn() {
+        zoom = min(zoom * 1.25, 4.0)
+    }
+    
+    func zoomOut() {
+        zoom = max(zoom / 1.25, 0.25)
+    }
+    
+    func increaseFontSize() {
+        fontSizeOffset += 1.0
+    }
+    
+    func decreaseFontSize(minOffset: Double) {
+        fontSizeOffset = max(fontSizeOffset - 1.0, minOffset)
+    }
 }
 
-struct DocumentFontSizeKey: FocusedValueKey {
-    typealias Value = Binding<Double>
+// FocusedValue for per-document zoom state
+struct DocumentZoomStateKey: FocusedValueKey {
+    typealias Value = DocumentZoomState
 }
 
 extension FocusedValues {
-    var documentZoom: Binding<Double>? {
-        get { self[DocumentZoomKey.self] }
-        set { self[DocumentZoomKey.self] = newValue }
-    }
-    
-    var documentFontSize: Binding<Double>? {
-        get { self[DocumentFontSizeKey.self] }
-        set { self[DocumentFontSizeKey.self] = newValue }
+    var documentZoomState: DocumentZoomState? {
+        get { self[DocumentZoomStateKey.self] }
+        set { self[DocumentZoomStateKey.self] = newValue }
     }
 }
 
@@ -30,14 +47,12 @@ struct ContentView: View {
     @Binding var document: TextDocument
     @EnvironmentObject var settingsManager: SettingsManager
     
-    // Per-document overrides (not persisted)
-    @State private var documentZoom: Double = 1.0
-    @State private var documentFontSizeOffset: Double = 0.0
+    // Per-document state (not persisted)
+    @StateObject private var zoomState = DocumentZoomState()
     
     var body: some View {
-        EditorView(text: $document.text, documentZoom: documentZoom, documentFontSizeOffset: documentFontSizeOffset)
+        EditorView(text: $document.text, documentZoom: zoomState.zoom, documentFontSizeOffset: zoomState.fontSizeOffset)
             .environmentObject(settingsManager)
-            .focusedSceneValue(\.documentZoom, $documentZoom)
-            .focusedSceneValue(\.documentFontSize, $documentFontSizeOffset)
+            .focusedSceneValue(\.documentZoomState, zoomState)
     }
 }
