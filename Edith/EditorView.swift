@@ -194,14 +194,15 @@ class LineNumberView: NSView {
     
     // Calculate width based on current font
     private func calculateCurrentWidth() -> CGFloat {
-        guard let textView = textView else { return 40 }
+        guard let textView = textView else { return 50 }
         let lineCount = max(1, textView.string.components(separatedBy: "\n").count)
         let digits = max(3, String(lineCount).count)
         
         let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let sampleNumber = String(repeating: "8", count: digits)
         let attrs: [NSAttributedString.Key: Any] = [.font: lineNumberFont]
-        return sampleNumber.size(withAttributes: attrs).width + 16
+        // Wider padding: 12pt left + 12pt right = 24pt total
+        return sampleNumber.size(withAttributes: attrs).width + 24
     }
     
     // Width never shrinks below baseline (default zoom width)
@@ -260,7 +261,9 @@ class LineNumberView: NSView {
         if content.length == 0 {
             let s = "1"
             let sz = s.size(withAttributes: attrs)
-            s.draw(at: NSPoint(x: bounds.width - sz.width - 8, y: inset.height), withAttributes: attrs)
+            // Center-align horizontally
+            let xPos = (bounds.width - sz.width) / 2
+            s.draw(at: NSPoint(x: xPos, y: inset.height), withAttributes: attrs)
             return
         }
         
@@ -293,7 +296,9 @@ class LineNumberView: NSView {
             
             let s = "\(lineNum)"
             let sz = s.size(withAttributes: attrs)
-            let pt = NSPoint(x: bounds.width - sz.width - 8, y: yPos + (lineRect.height - sz.height) / 2)
+            // Center-align horizontally within gutter
+            let xPos = (bounds.width - sz.width) / 2
+            let pt = NSPoint(x: xPos, y: yPos + (lineRect.height - sz.height) / 2)
             s.draw(at: pt, withAttributes: attrs)
             
             lineNum += 1
