@@ -10,6 +10,11 @@ struct SettingsView: View {
     
     var body: some View {
         TabView {
+            GeneralSettingsView()
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
+            
             TextEncodingSettingsView()
                 .tabItem {
                     Label("Text Encodings", systemImage: "doc.text")
@@ -26,7 +31,40 @@ struct SettingsView: View {
                 }
         }
         .environmentObject(settingsManager)
-        .frame(width: 450, height: 300)
+        .frame(width: 500, height: 320)
+    }
+}
+
+// MARK: - General Settings
+struct GeneralSettingsView: View {
+    @EnvironmentObject var settingsManager: SettingsManager
+    
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Re-open documents from last session", isOn: $settingsManager.reopenDocumentsOnLaunch)
+                
+                Toggle("Restore unsaved changes", isOn: $settingsManager.restoreUnsavedChanges)
+                    .disabled(!settingsManager.reopenDocumentsOnLaunch)
+                    .foregroundColor(settingsManager.reopenDocumentsOnLaunch ? .primary : .secondary)
+                    .padding(.leading, 20)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Toggle("Automatically refresh documents changed on disk", isOn: $settingsManager.refreshDocumentsChangedOnDisk)
+            }
+            
+            Spacer()
+            
+            HStack {
+                Spacer()
+                Button("Restore Defaults") {
+                    settingsManager.restoreDefaults()
+                }
+            }
+        }
+        .padding()
     }
 }
 

@@ -57,6 +57,14 @@ struct ZoomCommands: Commands {
                 .disabled(zoomState == nil)
             }
         }
+        
+        // Help menu
+        CommandGroup(replacing: .help) {
+            Button("Edith Help") {
+                HelpWindowController.shared.showHelp()
+            }
+            .keyboardShortcut("?", modifiers: .command)
+        }
     }
 }
 

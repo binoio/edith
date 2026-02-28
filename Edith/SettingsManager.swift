@@ -62,6 +62,11 @@ enum TextEncodingOption: Int, CaseIterable, Identifiable {
 }
 
 class SettingsManager: ObservableObject {
+    // General
+    @AppStorage("reopenDocumentsOnLaunch") var reopenDocumentsOnLaunch: Bool = true
+    @AppStorage("restoreUnsavedChanges") var restoreUnsavedChanges: Bool = true
+    @AppStorage("refreshDocumentsChangedOnDisk") var refreshDocumentsChangedOnDisk: Bool = true
+    
     // Text Encoding
     @AppStorage("defaultTextEncoding") var defaultTextEncoding: Int = TextEncodingOption.utf8.rawValue
     
@@ -84,6 +89,9 @@ class SettingsManager: ObservableObject {
     @Published var activeDocumentZoom: Double = 1.0
     
     // Default values for restoration
+    static let defaultReopenDocumentsOnLaunch = true
+    static let defaultRestoreUnsavedChanges = true
+    static let defaultRefreshDocumentsChangedOnDisk = true
     static let defaultFontName = "Menlo"
     static let defaultFontSize: Double = 13.0
     static let defaultMagnification: Double = 1.0
@@ -115,6 +123,9 @@ class SettingsManager: ObservableObject {
     }
     
     func restoreDefaults() {
+        reopenDocumentsOnLaunch = Self.defaultReopenDocumentsOnLaunch
+        restoreUnsavedChanges = Self.defaultRestoreUnsavedChanges
+        refreshDocumentsChangedOnDisk = Self.defaultRefreshDocumentsChangedOnDisk
         fontName = Self.defaultFontName
         fontSize = Self.defaultFontSize
         magnification = Self.defaultMagnification

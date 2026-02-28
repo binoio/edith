@@ -14,6 +14,8 @@
 		005 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105; };
 		006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106; };
 		007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 201; };
+		008 /* DocumentRestoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107; };
+		009 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108; };
 		T01 /* LineNumberGutterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T10; };
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
 		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
@@ -46,6 +48,8 @@
 		104 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		105 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		106 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		107 /* DocumentRestoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentRestoreManager.swift; sourceTree = "<group>"; };
+		108 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		301 /* Edith.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Edith.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		401 /* Edith.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Edith.entitlements; sourceTree = "<group>"; };
@@ -89,6 +93,8 @@
 				104 /* EditorView.swift */,
 				105 /* SettingsManager.swift */,
 				106 /* SettingsView.swift */,
+				107 /* DocumentRestoreManager.swift */,
+				108 /* HelpView.swift */,
 				201 /* Assets.xcassets */,
 				401 /* Edith.entitlements */,
 			);
@@ -236,6 +242,8 @@
 				004 /* EditorView.swift in Sources */,
 				005 /* SettingsManager.swift in Sources */,
 				006 /* SettingsView.swift in Sources */,
+				008 /* DocumentRestoreManager.swift in Sources */,
+				009 /* HelpView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
