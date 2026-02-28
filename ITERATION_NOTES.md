@@ -1,33 +1,36 @@
 # Edith - Iteration Notes
 
-## Current State: v1.2 Zoom & Font Size Menus ✓
+## Current State: v1.3 Session Restore & General Settings ✓
 
-Build and tests verified 2025-01.
+Build and tests verified.
 
 ## What's Done
 - File > New Text Document (⌘N)
-- Settings window (⌘,) with three tabs: Text Encodings, Appearance, Editor Defaults
+- Settings window (⌘,) with four tabs: General, Text Encodings, Appearance, Editor Defaults
+- General settings: Re-open documents, Restore unsaved changes, Refresh documents changed on disk
 - Restore Defaults button in settings
-- Line number gutter with proper alignment
-- View > Show/Hide Line Numbers toggle
+- Line number gutter with proper alignment and styling
+- View > Show/Hide Line Numbers toggle (⇧⌘L)
 - View > Zoom In (⌘=), Zoom Out (⌘-), Actual Size (⌘0)
 - Format > Font > Bigger (⇧⌘+), Smaller (⌥⌘-)
-- Actual Size disabled when already at default zoom
-- Zoom In/Out disabled at bounds (4x max, 0.25x min)
-- 146 unit tests + 26 UI tests
+- Custom invisible character rendering (·↵△° etc.)
+- File change detection with reload/ignore banner
+- Help window (⌘?)
+- Session restore on launch (re-opens previously open documents)
+- 159 unit tests + 26 UI tests
 
 ## Tests
 Run `./scripts/test.sh` to verify all functionality.
 UI tests cover zoom menu states and keyboard shortcuts.
 
-## Suggested Future Enhancements
+## Recent Changes
+- Fixed session restore by reading UserDefaults directly in AppDelegate
+- Added SessionRestoreTests with 13 tests
 
-1. **File operations**: Open, Save, Save As menus
-2. **Edit menu**: Find & Replace
-3. **App icon**: Add custom icon asset
-4. **Toggle line numbers**: Settings option to show/hide gutter
-5. **Syntax highlighting**: Basic support
-6. **Recent documents**: File > Open Recent
+## Next Steps
+1. Verify session restore works end-to-end (manual test)
+2. Add Help content for new features
+3. Consider adding unsaved content backup restoration
 
 ## Tech Stack
 - SwiftUI + NSTextView wrapper, @AppStorage, DocumentGroup
