@@ -8,8 +8,23 @@
 import SwiftUI
 
 // MARK: - App Delegate for session management
-class EdithAppDelegate: NSObject, NSApplicationDelegate {
+class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     var settingsManager: SettingsManager?
+    
+    override init() {
+        super.init()
+        
+        // Force directory creation immediately
+        _ = DocumentRestoreManager.shared
+        
+        // Register for termination notification
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWillTerminate),
+            name: NSApplication.willTerminateNotification,
+            object: nil
+        )
+    }
     
     // Read setting directly from UserDefaults (same source as SettingsManager)
     private var reopenDocumentsOnLaunch: Bool {
@@ -42,7 +57,25 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    @objc func handleWillTerminate(_ notification: Notification) {
+        saveOpenDocumentsState()
+    }
+    
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Save open documents BEFORE the app starts closing windows
+        saveOpenDocumentsState()
+        return .terminateNow
+    }
+    
     func applicationWillTerminate(_ notification: Notification) {
+        // Backup: also try to save here in case applicationShouldTerminate wasn't called
+        saveOpenDocumentsState()
+    }
+    
+    private func saveOpenDocumentsState() {
+        // Always save, even if empty - this ensures the directory exists
+        // and clears any stale data if no documents are open
+        
         guard reopenDocumentsOnLaunch else {
             DocumentRestoreManager.shared.clearOpenDocuments()
             return
@@ -63,6 +96,7 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate {
             openDocs.append(info)
         }
         
+        // Always save, even if array is empty (to clear old data)
         DocumentRestoreManager.shared.saveOpenDocuments(openDocs)
     }
 }
