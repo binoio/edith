@@ -8,6 +8,7 @@ import AppKit
 import HighlightSwift
 
 /// Wrapper around HighlightSwift for syntax highlighting
+/// Uses in-place attribute application to avoid disrupting text input
 @MainActor
 class SyntaxHighlighter: ObservableObject {
     private let highlight = Highlight()
@@ -16,14 +17,13 @@ class SyntaxHighlighter: ObservableObject {
     @Published var isHighlighting: Bool = false
     
     private var debounceTask: Task<Void, Never>?
-    private let debounceDelay: TimeInterval = 0.3
+    private let debounceDelay: TimeInterval = 0.5
     
-    /// Highlight text with optional language specification
-    /// - Parameters:
-    ///   - text: The text to highlight
-    ///   - language: The language to use (nil for auto-detect)
-    ///   - textStorage: The NSTextStorage to apply highlighting to
-    ///   - baseFont: The base font to use
+    // Track last highlighted state to avoid redundant work
+    private var lastHighlightedText: String = ""
+    private var lastHighlightedLanguage: SyntaxLanguage = .auto
+    
+    /// Highlight text with debouncing for typing performance
     func highlightText(
         _ text: String,
         language: SyntaxLanguage,
@@ -33,21 +33,20 @@ class SyntaxHighlighter: ObservableObject {
         // Cancel any pending debounce
         debounceTask?.cancel()
         
-        // Plain text = no highlighting
+        // Plain text = clear highlighting
         if language == .plain {
-            applyPlainText(text, textStorage: textStorage, baseFont: baseFont)
+            clearHighlighting(textStorage: textStorage, baseFont: baseFont)
             detectedLanguage = nil
+            lastHighlightedText = text
+            lastHighlightedLanguage = language
             return
         }
         
-        // Start debounce
+        // Start debounce - longer delay for smoother typing
         debounceTask = Task { [weak self] in
             do {
-                // Wait for debounce
-                try await Task.sleep(nanoseconds: UInt64(self?.debounceDelay ?? 0.3) * 1_000_000_000)
-                
+                try await Task.sleep(nanoseconds: UInt64((self?.debounceDelay ?? 0.5) * 1_000_000_000))
                 guard !Task.isCancelled else { return }
-                
                 await self?.performHighlighting(text: text, language: language, textStorage: textStorage, baseFont: baseFont)
             } catch {
                 // Task was cancelled, ignore
@@ -71,8 +70,18 @@ class SyntaxHighlighter: ObservableObject {
         textStorage: NSTextStorage,
         baseFont: NSFont
     ) async {
+        // Skip if nothing changed
+        if text == lastHighlightedText && language == lastHighlightedLanguage {
+            return
+        }
+        
         guard !text.isEmpty else {
-            applyPlainText(text, textStorage: textStorage, baseFont: baseFont)
+            clearHighlighting(textStorage: textStorage, baseFont: baseFont)
+            return
+        }
+        
+        // Verify text storage still has the same content
+        guard textStorage.string == text else {
             return
         }
         
@@ -84,79 +93,71 @@ class SyntaxHighlighter: ObservableObject {
             let colors = SyntaxHighlighter.colors(for: NSApp.effectiveAppearance)
             
             if let langId = language.highlightLanguage {
-                // Use specified language
                 result = try await highlight.request(text, mode: .languageAlias(langId), colors: colors)
             } else {
-                // Auto-detect
                 result = try await highlight.request(text, mode: .automatic, colors: colors)
             }
             
             // Update detected language
             detectedLanguage = result.languageName
             
-            // Apply the attributed string while preserving font
-            applyHighlightedText(result.attributedText, textStorage: textStorage, baseFont: baseFont)
+            // Verify content hasn't changed during async highlighting
+            guard textStorage.string == text else {
+                return
+            }
+            
+            // Apply colors in-place
+            applyColorsInPlace(from: result.attributedText, to: textStorage, baseFont: baseFont)
+            
+            lastHighlightedText = text
+            lastHighlightedLanguage = language
             
         } catch {
-            // On error, fall back to plain text
-            applyPlainText(text, textStorage: textStorage, baseFont: baseFont)
+            // On error, just clear colors
+            clearHighlighting(textStorage: textStorage, baseFont: baseFont)
         }
     }
     
-    private func applyHighlightedText(
-        _ attributedText: AttributedString,
-        textStorage: NSTextStorage,
+    /// Apply color attributes from highlighted text to storage without replacing content
+    private func applyColorsInPlace(
+        from attributedText: AttributedString,
+        to textStorage: NSTextStorage,
         baseFont: NSFont
     ) {
-        // Convert to NSAttributedString
-        let nsAttrString = NSMutableAttributedString(attributedText)
+        let nsHighlighted = NSAttributedString(attributedText)
         
-        // Preserve the base font size throughout
-        let fullRange = NSRange(location: 0, length: nsAttrString.length)
-        nsAttrString.enumerateAttribute(.font, in: fullRange, options: []) { value, range, _ in
-            if let existingFont = value as? NSFont {
-                // Keep the font family/style from highlighting but use base size
-                let newFont = NSFont(descriptor: existingFont.fontDescriptor, size: baseFont.pointSize)
-                    ?? baseFont
-                nsAttrString.addAttribute(.font, value: newFont, range: range)
-            } else {
-                nsAttrString.addAttribute(.font, value: baseFont, range: range)
+        // Verify lengths match
+        guard nsHighlighted.length == textStorage.length else {
+            return
+        }
+        
+        textStorage.beginEditing()
+        
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        
+        // First, reset to default color and ensure font
+        textStorage.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        textStorage.addAttribute(.font, value: baseFont, range: fullRange)
+        
+        // Now apply colors from the highlighted text
+        nsHighlighted.enumerateAttribute(.foregroundColor, in: fullRange, options: []) { value, range, _ in
+            if let color = value as? NSColor {
+                textStorage.addAttribute(.foregroundColor, value: color, range: range)
             }
         }
         
-        // Apply to text storage
-        let selectedRanges = textStorage.layoutManagers.first?.textViewForBeginningOfSelection?.selectedRanges ?? []
-        
-        textStorage.beginEditing()
-        textStorage.setAttributedString(nsAttrString)
         textStorage.endEditing()
-        
-        // Restore selection if possible
-        if let textView = textStorage.layoutManagers.first?.textViewForBeginningOfSelection {
-            textView.selectedRanges = selectedRanges
-        }
     }
     
-    private func applyPlainText(
-        _ text: String,
-        textStorage: NSTextStorage,
-        baseFont: NSFont
-    ) {
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: baseFont,
-            .foregroundColor: NSColor.textColor
-        ]
-        
-        let selectedRanges = textStorage.layoutManagers.first?.textViewForBeginningOfSelection?.selectedRanges ?? []
+    /// Clear all highlighting and apply default styling
+    private func clearHighlighting(textStorage: NSTextStorage, baseFont: NSFont) {
+        guard textStorage.length > 0 else { return }
         
         textStorage.beginEditing()
-        textStorage.setAttributedString(NSAttributedString(string: text, attributes: attrs))
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        textStorage.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        textStorage.addAttribute(.font, value: baseFont, range: fullRange)
         textStorage.endEditing()
-        
-        // Restore selection if possible
-        if let textView = textStorage.layoutManagers.first?.textViewForBeginningOfSelection {
-            textView.selectedRanges = selectedRanges
-        }
     }
 }
 

@@ -26,8 +26,8 @@ struct EditorView: NSViewRepresentable {
         
         applySettings(to: scrollView)
         
-        // Note: Syntax highlighting disabled - it breaks cursor/text input
-        // Future: implement attribute-based highlighting that doesn't replace content
+        // Apply initial syntax highlighting (in-place, doesn't replace content)
+        applyHighlighting(to: scrollView, immediate: true)
         
         return scrollView
     }
@@ -51,12 +51,18 @@ struct EditorView: NSViewRepresentable {
                 )
                 textView.setSelectedRange(validRange)
             }
+            
+            // Re-highlight after external text change
+            applyHighlighting(to: scrollView, immediate: true)
         }
         
         applySettings(to: scrollView)
         
-        // Track language changes for future use
-        context.coordinator.lastLanguage = syntaxLanguage
+        // Re-apply highlighting when language changes
+        if context.coordinator.lastLanguage != syntaxLanguage {
+            context.coordinator.lastLanguage = syntaxLanguage
+            applyHighlighting(to: scrollView, immediate: true)
+        }
     }
     
     private func applySettings(to scrollView: LineNumberScrollView) {
@@ -82,8 +88,28 @@ struct EditorView: NSViewRepresentable {
         scrollView.customLayoutManager.showInvisibleCharacters = settingsManager.showInvisibleCharacters
     }
     
-    // Note: applyHighlighting disabled - the setAttributedString approach breaks cursor/input
-    // Future implementation should use attribute-based coloring without replacing content
+    private func applyHighlighting(to scrollView: LineNumberScrollView, immediate: Bool) {
+        guard let textStorage = scrollView.textView.textStorage else { return }
+        let font = scrollView.currentFont
+        
+        if immediate {
+            Task { @MainActor in
+                await syntaxHighlighter.highlightImmediately(
+                    text,
+                    language: syntaxLanguage,
+                    textStorage: textStorage,
+                    baseFont: font
+                )
+            }
+        } else {
+            syntaxHighlighter.highlightText(
+                text,
+                language: syntaxLanguage,
+                textStorage: textStorage,
+                baseFont: font
+            )
+        }
+    }
     
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -105,8 +131,16 @@ struct EditorView: NSViewRepresentable {
             scrollView?.lineNumberView.needsDisplay = true
             updateCursorPosition()
             
-            // Note: Syntax highlighting during typing is disabled to prevent cursor issues.
-            // Highlighting is applied on document load and language change only.
+            // Trigger debounced highlighting (applies colors in-place, doesn't disrupt typing)
+            if let textStorage = textView.textStorage,
+               let scrollView = scrollView {
+                parent.syntaxHighlighter.highlightText(
+                    textView.string,
+                    language: parent.syntaxLanguage,
+                    textStorage: textStorage,
+                    baseFont: scrollView.currentFont
+                )
+            }
         }
         
         func textViewDidChangeSelection(_ notification: Notification) {
