@@ -72,8 +72,14 @@ struct ContentView: View {
                 )
             }
             
-            EditorView(text: $document.text, zoomState: zoomState, cursorPosition: $cursorPosition)
-                .environmentObject(settingsManager)
+            EditorView(
+                text: $document.text,
+                zoomState: zoomState,
+                cursorPosition: $cursorPosition,
+                syntaxLanguage: document.syntaxLanguage,
+                syntaxHighlighter: syntaxHighlighter
+            )
+            .environmentObject(settingsManager)
             
             // Status Bar
             if settingsManager.showStatusBar {

@@ -11,6 +11,8 @@ struct EditorView: NSViewRepresentable {
     @EnvironmentObject var settingsManager: SettingsManager
     @ObservedObject var zoomState: DocumentZoomState
     @Binding var cursorPosition: CursorPosition
+    var syntaxLanguage: SyntaxLanguage
+    @ObservedObject var syntaxHighlighter: SyntaxHighlighter
     
     func makeNSView(context: Context) -> LineNumberScrollView {
         let scrollView = LineNumberScrollView()
@@ -24,17 +26,40 @@ struct EditorView: NSViewRepresentable {
         
         applySettings(to: scrollView)
         
+        // Apply initial syntax highlighting
+        applyHighlighting(to: scrollView, immediate: true)
+        
         return scrollView
     }
     
     func updateNSView(_ scrollView: LineNumberScrollView, context: Context) {
         let textView = scrollView.textView
         
-        if textView.string != text {
+        // Check if text changed externally (e.g., file reload)
+        let textChanged = textView.string != text
+        if textChanged {
+            // Preserve selection
+            let selectedRanges = textView.selectedRanges
             textView.string = text
+            
+            // Restore selection if valid
+            if let firstRange = selectedRanges.first?.rangeValue,
+               firstRange.location <= text.count {
+                let validRange = NSRange(
+                    location: min(firstRange.location, text.count),
+                    length: min(firstRange.length, text.count - min(firstRange.location, text.count))
+                )
+                textView.setSelectedRange(validRange)
+            }
         }
         
         applySettings(to: scrollView)
+        
+        // Re-apply highlighting when language changes or text reloaded externally
+        if textChanged || context.coordinator.lastLanguage != syntaxLanguage {
+            context.coordinator.lastLanguage = syntaxLanguage
+            applyHighlighting(to: scrollView, immediate: textChanged)
+        }
     }
     
     private func applySettings(to scrollView: LineNumberScrollView) {
@@ -49,6 +74,7 @@ struct EditorView: NSViewRepresentable {
         
         textView.font = font
         scrollView.lineNumberView.font = font
+        scrollView.currentFont = font
         
         // Set baseline width when at default zoom (zoom=1.0)
         if zoomState.zoom == 1.0 {
@@ -59,6 +85,29 @@ struct EditorView: NSViewRepresentable {
         scrollView.customLayoutManager.showInvisibleCharacters = settingsManager.showInvisibleCharacters
     }
     
+    private func applyHighlighting(to scrollView: LineNumberScrollView, immediate: Bool) {
+        guard let textStorage = scrollView.textView.textStorage else { return }
+        let font = scrollView.currentFont
+        
+        if immediate {
+            Task { @MainActor in
+                await syntaxHighlighter.highlightImmediately(
+                    text,
+                    language: syntaxLanguage,
+                    textStorage: textStorage,
+                    baseFont: font
+                )
+            }
+        } else {
+            syntaxHighlighter.highlightText(
+                text,
+                language: syntaxLanguage,
+                textStorage: textStorage,
+                baseFont: font
+            )
+        }
+    }
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
@@ -67,6 +116,7 @@ struct EditorView: NSViewRepresentable {
         var parent: EditorView
         weak var textView: NSTextView?
         weak var scrollView: LineNumberScrollView?
+        var lastLanguage: SyntaxLanguage = .auto
         
         init(_ parent: EditorView) {
             self.parent = parent
@@ -77,6 +127,17 @@ struct EditorView: NSViewRepresentable {
             parent.text = textView.string
             scrollView?.lineNumberView.needsDisplay = true
             updateCursorPosition()
+            
+            // Trigger debounced highlighting on text changes
+            if let textStorage = textView.textStorage,
+               let scrollView = scrollView {
+                parent.syntaxHighlighter.highlightText(
+                    textView.string,
+                    language: parent.syntaxLanguage,
+                    textStorage: textStorage,
+                    baseFont: scrollView.currentFont
+                )
+            }
         }
         
         func textViewDidChangeSelection(_ notification: Notification) {
@@ -100,6 +161,8 @@ class LineNumberScrollView: NSView {
     let textView: NSTextView
     let lineNumberView: LineNumberView
     let customLayoutManager: InvisibleCharacterLayoutManager
+    
+    var currentFont: NSFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
     
     var showLineNumbers: Bool = true {
         didSet {
