@@ -7,6 +7,55 @@
 
 import SwiftUI
 
+// MARK: - App Delegate for session management
+class EdithAppDelegate: NSObject, NSApplicationDelegate {
+    var settingsManager: SettingsManager?
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let settings = settingsManager, settings.reopenDocumentsOnLaunch else { return }
+        
+        // Restore documents from last session
+        let openDocs = DocumentRestoreManager.shared.loadOpenDocuments()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            for docInfo in openDocs {
+                let url = URL(fileURLWithPath: docInfo.path)
+                guard FileManager.default.fileExists(atPath: docInfo.path) else { continue }
+                
+                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { document, wasAlreadyOpen, error in
+                    if let error = error {
+                        print("Failed to reopen \(docInfo.path): \(error)")
+                    }
+                }
+            }
+        }
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        guard let settings = settingsManager, settings.reopenDocumentsOnLaunch else {
+            DocumentRestoreManager.shared.clearOpenDocuments()
+            return
+        }
+        
+        // Save list of open documents
+        var openDocs: [DocumentRestoreManager.OpenDocumentInfo] = []
+        
+        for document in NSDocumentController.shared.documents {
+            guard let fileURL = document.fileURL else { continue }
+            
+            let restoreID = fileURL.lastPathComponent.replacingOccurrences(of: ".", with: "_")
+            let info = DocumentRestoreManager.OpenDocumentInfo(
+                path: fileURL.path,
+                hasUnsavedChanges: document.hasUnautosavedChanges,
+                restoreID: restoreID
+            )
+            openDocs.append(info)
+        }
+        
+        DocumentRestoreManager.shared.saveOpenDocuments(openDocs)
+    }
+}
+
 // Helper view to observe zoom state and provide reactive menu items
 struct ZoomCommands: Commands {
     @FocusedValue(\.documentZoomState) var zoomState
@@ -70,12 +119,17 @@ struct ZoomCommands: Commands {
 
 @main
 struct EdithApp: App {
+    @NSApplicationDelegateAdaptor(EdithAppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager()
     
     var body: some Scene {
         DocumentGroup(newDocument: TextDocument()) { file in
             ContentView(document: file.$document)
                 .environmentObject(settingsManager)
+                .onAppear {
+                    // Pass settings to app delegate
+                    appDelegate.settingsManager = settingsManager
+                }
         }
         .commands {
             CommandGroup(replacing: .newItem) {
