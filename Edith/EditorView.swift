@@ -360,9 +360,12 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
     private let invisibleColor = NSColor(calibratedWhite: 0.7, alpha: 1.0)
     
     // Unicode characters for invisibles
-    private let spaceGlyph: String = "·"        // Middle dot for space
-    private let newlineGlyph: String = "↵"      // Return symbol for newline  
-    private let tabGlyph: String = "△"          // Delta for tab
+    private let spaceGlyph: String = "·"              // Middle dot for space
+    private let nonBreakingSpaceGlyph: String = "°"   // Degree symbol for non-breaking space
+    private let newlineGlyph: String = "↵"            // Return symbol for newline  
+    private let tabGlyph: String = "△"                // Delta for tab
+    private let formFeedGlyph: String = "▽"           // Down triangle for form feed
+    private let verticalTabGlyph: String = "↧"        // Down arrow to bar for vertical tab
     
     override func drawGlyphs(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
         super.drawGlyphs(forGlyphRange: glyphsToShow, at: origin)
@@ -382,12 +385,18 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
             switch char {
             case " ":
                 glyph = self.spaceGlyph
+            case "\u{00A0}":  // Non-breaking space
+                glyph = self.nonBreakingSpaceGlyph
             case "\n":
                 glyph = self.newlineGlyph
             case "\t":
                 glyph = self.tabGlyph
             case "\r":
                 glyph = self.newlineGlyph
+            case "\u{000C}":  // Form feed
+                glyph = self.formFeedGlyph
+            case "\u{000B}":  // Vertical tab
+                glyph = self.verticalTabGlyph
             default:
                 return
             }
