@@ -19,10 +19,18 @@
 		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
 		T05 /* SettingsPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T14; };
 		T06 /* ZoomFunctionalityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T15; };
+		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		T02 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 900 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 700;
+			remoteInfo = Edith;
+		};
+		U02 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 900 /* Project object */;
 			proxyType = 1;
@@ -47,6 +55,8 @@
 		T13 /* MenuStructureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuStructureTests.swift; sourceTree = "<group>"; };
 		T14 /* SettingsPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPersistenceTests.swift; sourceTree = "<group>"; };
 		T15 /* ZoomFunctionalityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomFunctionalityTests.swift; sourceTree = "<group>"; };
+		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
+		U11 /* EdithUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +75,7 @@
 			children = (
 				601 /* Edith */,
 				T20 /* EdithTests */,
+				U20 /* EdithUITests */,
 				602 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -89,6 +100,7 @@
 			children = (
 				301 /* Edith.app */,
 				T11 /* EdithTests.xctest */,
+				U11 /* EdithUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -103,6 +115,14 @@
 				T15 /* ZoomFunctionalityTests.swift */,
 			);
 			path = EdithTests;
+			sourceTree = "<group>";
+		};
+		U20 /* EdithUITests */ = {
+			isa = PBXGroup;
+			children = (
+				U10 /* ZoomUITests.swift */,
+			);
+			path = EdithUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +162,23 @@
 			productReference = T11 /* EdithTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		U30 /* EdithUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = U80;
+			buildPhases = (
+				U31 /* Sources */,
+				U32 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				U33 /* PBXTargetDependency */,
+			);
+			name = EdithUITests;
+			productName = EdithUITests;
+			productReference = U11 /* EdithUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -172,6 +209,7 @@
 			targets = (
 				700 /* Edith */,
 				T30 /* EdithTests */,
+				U30 /* EdithUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -213,6 +251,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		U31 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				U01 /* ZoomUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -221,10 +267,29 @@
 			target = 700 /* Edith */;
 			targetProxy = T02 /* PBXContainerItemProxy */;
 		};
+		U33 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 700 /* Edith */;
+			targetProxy = U02 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		501 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		T32 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		U32 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -440,6 +505,38 @@
 			};
 			name = Release;
 		};
+		U81 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Edith;
+			};
+			name = Debug;
+		};
+		U82 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Edith;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -466,6 +563,15 @@
 			buildConfigurations = (
 				T81 /* Debug */,
 				T82 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		U80 /* Build configuration list for PBXNativeTarget "EdithUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				U81 /* Debug */,
+				U82 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
