@@ -37,7 +37,7 @@ struct ContentView: View {
     var body: some View {
         EditorView(text: $document.text, documentZoom: documentZoom, documentFontSizeOffset: documentFontSizeOffset)
             .environmentObject(settingsManager)
-            .focusedValue(\.documentZoom, $documentZoom)
-            .focusedValue(\.documentFontSize, $documentFontSizeOffset)
+            .focusedSceneValue(\.documentZoom, $documentZoom)
+            .focusedSceneValue(\.documentFontSize, $documentFontSizeOffset)
     }
 }

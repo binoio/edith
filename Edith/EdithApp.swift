@@ -52,7 +52,9 @@ struct EdithApp: App {
                 .disabled(documentZoom == nil)
                 
                 Button("Actual Size") {
-                    documentZoom?.wrappedValue = 1.0
+                    if let zoom = documentZoom {
+                        zoom.wrappedValue = 1.0
+                    }
                 }
                 .keyboardShortcut("0", modifiers: [.command, .option])
                 .disabled(documentZoom == nil)

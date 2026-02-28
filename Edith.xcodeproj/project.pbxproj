@@ -18,6 +18,7 @@
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
 		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
 		T05 /* SettingsPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T14; };
+		T06 /* ZoomFunctionalityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T15; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +46,7 @@
 		T12 /* TextEncodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEncodingTests.swift; sourceTree = "<group>"; };
 		T13 /* MenuStructureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuStructureTests.swift; sourceTree = "<group>"; };
 		T14 /* SettingsPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPersistenceTests.swift; sourceTree = "<group>"; };
+		T15 /* ZoomFunctionalityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomFunctionalityTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +100,7 @@
 				T12 /* TextEncodingTests.swift */,
 				T13 /* MenuStructureTests.swift */,
 				T14 /* SettingsPersistenceTests.swift */,
+				T15 /* ZoomFunctionalityTests.swift */,
 			);
 			path = EdithTests;
 			sourceTree = "<group>";
@@ -206,6 +209,7 @@
 				T03 /* TextEncodingTests.swift in Sources */,
 				T04 /* MenuStructureTests.swift in Sources */,
 				T05 /* SettingsPersistenceTests.swift in Sources */,
+				T06 /* ZoomFunctionalityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
