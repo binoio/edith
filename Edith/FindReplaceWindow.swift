@@ -129,19 +129,21 @@ struct FindReplaceView: View {
                     }
                 }
                 
-                // Match count
-                if !state.findText.isEmpty {
-                    HStack {
-                        if state.hasMatches {
-                            Text("\(state.currentMatchIndex + 1) of \(state.totalMatches) matches")
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("No matches")
-                                .foregroundColor(.red)
-                        }
-                        Spacer()
+                // Match count - always reserve space to prevent layout shift
+                HStack {
+                    if state.findText.isEmpty {
+                        Text(" ")
+                            .foregroundColor(.clear)
+                    } else if state.hasMatches {
+                        Text("\(state.currentMatchIndex + 1) of \(state.totalMatches) matches")
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("No matches")
+                            .foregroundColor(.red)
                     }
+                    Spacer()
                 }
+                .frame(height: 16)
                 
                 Spacer()
             }
