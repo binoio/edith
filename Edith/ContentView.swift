@@ -36,10 +36,20 @@ struct DocumentZoomStateKey: FocusedValueKey {
     typealias Value = DocumentZoomState
 }
 
+// FocusedValue for selected text
+struct SelectedTextKey: FocusedValueKey {
+    typealias Value = String
+}
+
 extension FocusedValues {
     var documentZoomState: DocumentZoomState? {
         get { self[DocumentZoomStateKey.self] }
         set { self[DocumentZoomStateKey.self] = newValue }
+    }
+    
+    var selectedText: String? {
+        get { self[SelectedTextKey.self] }
+        set { self[SelectedTextKey.self] = newValue }
     }
 }
 
@@ -57,6 +67,7 @@ struct ContentView: View {
     
     @State private var showFileChangedBanner = false
     @State private var cursorPosition = CursorPosition()
+    @State private var selectedText: String = ""
     
     var body: some View {
         ZStack {
@@ -78,6 +89,7 @@ struct ContentView: View {
                     text: $document.text,
                     zoomState: zoomState,
                     cursorPosition: $cursorPosition,
+                    selectedText: $selectedText,
                     syntaxLanguage: document.syntaxLanguage,
                     syntaxHighlighter: syntaxHighlighter,
                     findReplaceState: findReplaceState,
@@ -109,6 +121,7 @@ struct ContentView: View {
         }
         .focusedSceneValue(\.documentZoomState, zoomState)
         .focusedSceneValue(\.findReplaceState, findReplaceState)
+        .focusedSceneValue(\.selectedText, selectedText.isEmpty ? nil : selectedText)
         .onReceive(zoomState.$zoom) { newZoom in
             settingsManager.activeDocumentZoom = newZoom
         }

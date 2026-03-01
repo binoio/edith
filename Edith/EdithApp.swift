@@ -227,6 +227,29 @@ struct SearchCommands: Commands {
     }
 }
 
+// File menu commands
+struct FileCommands: Commands {
+    @FocusedValue(\.selectedText) var selectedText
+    
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Text Document") {
+                NSDocumentController.shared.newDocument(nil)
+            }
+            .keyboardShortcut("n", modifiers: .command)
+            
+            Button("New from Selected") {
+                if let text = selectedText {
+                    ExtractedContentManager.shared.pendingContent = text
+                    NSDocumentController.shared.newDocument(nil)
+                }
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+            .disabled(selectedText == nil)
+        }
+    }
+}
+
 @main
 struct EdithApp: App {
     @NSApplicationDelegateAdaptor(EdithAppDelegate.self) var appDelegate
@@ -247,13 +270,7 @@ struct EdithApp: App {
                 }
         }
         .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("New Text Document") {
-                    NSDocumentController.shared.newDocument(nil)
-                }
-                .keyboardShortcut("n", modifiers: .command)
-            }
-            
+            FileCommands()
             ZoomCommands(settingsManager: settingsManager)
             SearchCommands()
         }

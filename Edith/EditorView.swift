@@ -11,6 +11,7 @@ struct EditorView: NSViewRepresentable {
     @EnvironmentObject var settingsManager: SettingsManager
     @ObservedObject var zoomState: DocumentZoomState
     @Binding var cursorPosition: CursorPosition
+    @Binding var selectedText: String
     var syntaxLanguage: SyntaxLanguage
     @ObservedObject var syntaxHighlighter: SyntaxHighlighter
     @ObservedObject var findReplaceState: FindReplaceState
@@ -162,6 +163,7 @@ struct EditorView: NSViewRepresentable {
         
         func textViewDidChangeSelection(_ notification: Notification) {
             updateCursorPosition()
+            updateSelectedText()
         }
         
         private func updateCursorPosition() {
@@ -170,6 +172,16 @@ struct EditorView: NSViewRepresentable {
             let newPosition = CursorPosition.calculate(for: textView.string, at: selectedRange.location)
             DispatchQueue.main.async {
                 self.parent.cursorPosition = newPosition
+            }
+        }
+        
+        private func updateSelectedText() {
+            guard let textView = textView else { return }
+            let selectedRange = textView.selectedRange()
+            let text = textView.string as NSString
+            let selectedText = selectedRange.length > 0 ? text.substring(with: selectedRange) : ""
+            DispatchQueue.main.async {
+                self.parent.selectedText = selectedText
             }
         }
     }
