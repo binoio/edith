@@ -53,6 +53,11 @@ struct GeneralSettingsView: View {
                     .padding(.vertical, 8)
                 
                 Toggle("Automatically refresh documents changed on disk", isOn: $settingsManager.refreshDocumentsChangedOnDisk)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Toggle("Enable vim-like modal editing (double-tap Esc)", isOn: $settingsManager.enableVimMode)
             }
             
             Spacer()

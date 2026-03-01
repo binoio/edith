@@ -14,7 +14,7 @@ struct EditorView: NSViewRepresentable {
     var syntaxLanguage: SyntaxLanguage
     @ObservedObject var syntaxHighlighter: SyntaxHighlighter
     @ObservedObject var findReplaceState: FindReplaceState
-    @ObservedObject var vimModeState: VimModeState
+    var vimModeState: VimModeState?
     
     func makeNSView(context: Context) -> LineNumberScrollView {
         let scrollView = LineNumberScrollView(vimModeState: vimModeState)
@@ -29,8 +29,8 @@ struct EditorView: NSViewRepresentable {
         // Wire up find/replace state to text view
         findReplaceState.textView = textView
         
-        // Wire up vim mode state to text view
-        vimModeState.textView = textView
+        // Wire up vim mode state to text view (if enabled)
+        vimModeState?.textView = textView
         
         applySettings(to: scrollView)
         

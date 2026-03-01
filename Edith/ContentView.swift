@@ -81,12 +81,12 @@ struct ContentView: View {
                     syntaxLanguage: document.syntaxLanguage,
                     syntaxHighlighter: syntaxHighlighter,
                     findReplaceState: findReplaceState,
-                    vimModeState: vimModeState
+                    vimModeState: settingsManager.enableVimMode ? vimModeState : nil
                 )
                 .environmentObject(settingsManager)
                 
-                // Vim Command Bar (shown in command mode)
-                if vimModeState.mode == .command {
+                // Vim Command Bar (shown in command mode when vim is enabled)
+                if settingsManager.enableVimMode && vimModeState.mode == .command {
                     VimCommandBar(vimState: vimModeState)
                 }
                 
@@ -96,13 +96,13 @@ struct ContentView: View {
                         document: $document,
                         cursorPosition: $cursorPosition,
                         detectedLanguage: syntaxHighlighter.detectedLanguage,
-                        vimModeState: vimModeState
+                        vimModeState: settingsManager.enableVimMode ? vimModeState : nil
                     )
                 }
             }
             
-            // Green glow border for vim normal mode
-            if vimModeState.mode != .insert {
+            // Green glow border for vim normal mode (only when vim is enabled)
+            if settingsManager.enableVimMode && vimModeState.mode != .insert {
                 VimModeGlowOverlay()
             }
         }

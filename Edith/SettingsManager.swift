@@ -111,6 +111,7 @@ class SettingsManager: ObservableObject {
     @AppStorage("reopenDocumentsOnLaunch") var reopenDocumentsOnLaunch: Bool = true
     @AppStorage("restoreUnsavedChanges") var restoreUnsavedChanges: Bool = true
     @AppStorage("refreshDocumentsChangedOnDisk") var refreshDocumentsChangedOnDisk: Bool = true
+    @AppStorage("enableVimMode") var enableVimMode: Bool = false
     
     // Text Encoding
     @AppStorage("defaultTextEncoding") var defaultTextEncoding: Int = TextEncodingOption.utf8.rawValue
