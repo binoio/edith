@@ -37,10 +37,28 @@ final class FindReplaceManager: ObservableObject {
     /// All registered documents (for the dropdown)
     @Published private(set) var documents: [DocumentInfo] = []
     
+    // Shared search parameters (persist across document switches)
+    @Published var findText: String = ""
+    @Published var replaceText: String = ""
+    @Published var caseSensitive: Bool = false
+    @Published var usePCRE: Bool = false
+    @Published var wrapAround: Bool = true
+    
     /// Tracks which state is currently registered with document names
     private var registeredStates: [ObjectIdentifier: (state: FindReplaceState, name: String)] = [:]
     
     private init() {}
+    
+    /// Sync shared parameters to active state and perform search
+    func syncAndSearch() {
+        guard let state = activeState else { return }
+        state.findText = findText
+        state.replaceText = replaceText
+        state.caseSensitive = caseSensitive
+        state.usePCRE = usePCRE
+        state.wrapAround = wrapAround
+        state.performSearch()
+    }
     
     /// Called when a document window becomes key (focused)
     func registerActiveState(_ state: FindReplaceState, documentName: String = "Untitled") {
@@ -48,6 +66,8 @@ final class FindReplaceManager: ObservableObject {
         registeredStates[id] = (state, documentName)
         updateDocumentsList()
         activeState = state
+        // Sync search parameters to new active state
+        syncAndSearch()
     }
     
     /// Update document name (e.g., after save)
@@ -74,6 +94,7 @@ final class FindReplaceManager: ObservableObject {
     /// Select a specific document by its state
     func selectDocument(_ state: FindReplaceState) {
         activeState = state
+        syncAndSearch()
     }
     
     /// Ensure we have an active state (called when Find & Replace window opens)

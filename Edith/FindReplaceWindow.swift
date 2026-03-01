@@ -112,51 +112,58 @@ struct FindReplaceView: View {
             HStack(alignment: .top, spacing: 16) {
                 // Left side: Fields and options
                 VStack(alignment: .leading, spacing: 12) {
-                    // Find field
+                    // Find field - uses manager's shared findText
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Find:")
                             .font(.headline)
-                        MultilineTextField(text: $state.findText, placeholder: "Search text") {
+                        MultilineTextField(text: $manager.findText, placeholder: "Search text") {
+                            manager.syncAndSearch()
                             state.findNext()
                         }
                         .frame(height: 60)
-                        .onChange(of: state.findText) { _ in
-                            state.performSearch()
+                        .onChange(of: manager.findText) { _ in
+                            manager.syncAndSearch()
                         }
                     }
                     
-                    // Replace field
+                    // Replace field - uses manager's shared replaceText
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Replace:")
                             .font(.headline)
-                        MultilineTextField(text: $state.replaceText, placeholder: "Replacement text")
+                        MultilineTextField(text: $manager.replaceText, placeholder: "Replacement text")
                             .frame(height: 60)
+                            .onChange(of: manager.replaceText) { _ in
+                                state.replaceText = manager.replaceText
+                            }
                     }
                     
                     Divider()
                     
-                    // Options in a grid
+                    // Options in a grid - use manager's shared options
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 20) {
-                            Toggle("Case sensitive", isOn: $state.caseSensitive)
-                                .onChange(of: state.caseSensitive) { _ in state.performSearch() }
+                            Toggle("Case sensitive", isOn: $manager.caseSensitive)
+                                .onChange(of: manager.caseSensitive) { _ in manager.syncAndSearch() }
                             
-                            Toggle("PCRE syntax", isOn: $state.usePCRE)
-                                .onChange(of: state.usePCRE) { _ in state.performSearch() }
+                            Toggle("PCRE syntax", isOn: $manager.usePCRE)
+                                .onChange(of: manager.usePCRE) { _ in manager.syncAndSearch() }
                         }
                         
                         HStack(spacing: 20) {
                             Toggle("Selected text only", isOn: $state.selectedTextOnly)
                                 .disabled(state.initialSelectionRange == nil)
-                                .onChange(of: state.selectedTextOnly) { _ in state.performSearch() }
+                                .onChange(of: state.selectedTextOnly) { _ in manager.syncAndSearch() }
                             
-                            Toggle("Wrap around", isOn: $state.wrapAround)
+                            Toggle("Wrap around", isOn: $manager.wrapAround)
+                                .onChange(of: manager.wrapAround) { _ in
+                                    state.wrapAround = manager.wrapAround
+                                }
                         }
                     }
                     
                     // Match count - always reserve space to prevent layout shift
                     HStack {
-                        if state.findText.isEmpty {
+                        if manager.findText.isEmpty {
                             Text(" ")
                                 .foregroundColor(.clear)
                         } else if state.hasMatches {
@@ -220,8 +227,9 @@ struct FindReplaceView: View {
         .onAppear {
             manager.ensureActiveState()
             state.captureSelection()
-            if !state.findText.isEmpty {
-                state.performSearch()
+            // Sync manager's search text to state and search
+            if !manager.findText.isEmpty {
+                manager.syncAndSearch()
             }
         }
     }
