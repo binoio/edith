@@ -91,7 +91,7 @@ struct SearchEngine {
     /// - Parameters:
     ///   - text: The original text
     ///   - pattern: The search pattern
-    ///   - replacement: The replacement string
+    ///   - replacement: The replacement string (supports $1, $2 or \1, \2 for capture groups in PCRE mode)
     ///   - caseSensitive: Whether the search is case sensitive
     ///   - usePCRE: Whether to interpret pattern as PCRE regex
     ///   - searchRange: Optional range to limit replacement
@@ -106,7 +106,11 @@ struct SearchEngine {
     ) -> String {
         guard !pattern.isEmpty else { return text }
         
-        let matches = findMatches(in: text, pattern: pattern, caseSensitive: caseSensitive, usePCRE: usePCRE, searchRange: searchRange)
+        if usePCRE {
+            return replaceAllRegex(in: text, pattern: pattern, replacement: replacement, caseSensitive: caseSensitive, searchRange: searchRange)
+        }
+        
+        let matches = findMatches(in: text, pattern: pattern, caseSensitive: caseSensitive, usePCRE: false, searchRange: searchRange)
         
         guard !matches.isEmpty else { return text }
         
@@ -120,19 +124,76 @@ struct SearchEngine {
         return result as String
     }
     
+    /// Replace all regex matches with support for capture group backreferences
+    private static func replaceAllRegex(
+        in text: String,
+        pattern: String,
+        replacement: String,
+        caseSensitive: Bool,
+        searchRange: NSRange?
+    ) -> String {
+        do {
+            var options: NSRegularExpression.Options = [.anchorsMatchLines]
+            if !caseSensitive {
+                options.insert(.caseInsensitive)
+            }
+            
+            let regex = try NSRegularExpression(pattern: pattern, options: options)
+            
+            // Convert \1, \2, etc. to $1, $2 (NSRegularExpression format)
+            let normalizedReplacement = replacement
+                .replacingOccurrences(of: "\\\\([0-9]+)", with: "\\$$1", options: .regularExpression)
+            
+            let range = searchRange ?? NSRange(location: 0, length: (text as NSString).length)
+            
+            return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: normalizedReplacement)
+        } catch {
+            // Invalid regex - return original
+            return text
+        }
+    }
+    
     /// Replace a single match at the given range
     /// - Parameters:
     ///   - text: The original text
     ///   - range: The range to replace
-    ///   - replacement: The replacement string
+    ///   - replacement: The replacement string (supports $1, $2 or \1, \2 for capture groups in PCRE mode)
+    ///   - pattern: The original search pattern (needed for backreference support)
+    ///   - usePCRE: Whether PCRE mode is enabled
+    ///   - caseSensitive: Whether the search is case sensitive
     /// - Returns: The modified text
     static func replaceMatch(
         in text: String,
         at range: NSRange,
-        with replacement: String
+        with replacement: String,
+        pattern: String? = nil,
+        usePCRE: Bool = false,
+        caseSensitive: Bool = false
     ) -> String {
         let nsText = text as NSString
         guard range.location + range.length <= nsText.length else { return text }
+        
+        // For PCRE with backreferences, use regex replacement
+        if usePCRE, let pattern = pattern {
+            do {
+                var options: NSRegularExpression.Options = [.anchorsMatchLines]
+                if !caseSensitive {
+                    options.insert(.caseInsensitive)
+                }
+                
+                let regex = try NSRegularExpression(pattern: pattern, options: options)
+                
+                // Convert \1, \2, etc. to $1, $2 (NSRegularExpression format)
+                let normalizedReplacement = replacement
+                    .replacingOccurrences(of: "\\\\([0-9]+)", with: "\\$$1", options: .regularExpression)
+                
+                // Only replace this specific match
+                return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: normalizedReplacement)
+            } catch {
+                // Invalid regex - fall through to simple replacement
+            }
+        }
+        
         return nsText.replacingCharacters(in: range, with: replacement)
     }
     

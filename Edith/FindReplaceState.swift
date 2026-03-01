@@ -183,8 +183,22 @@ class FindReplaceState: ObservableObject {
             return
         }
         
-        // Replace the selection
-        textView.insertText(replaceText, replacementRange: match)
+        // For PCRE mode with backreferences, use SearchEngine
+        if usePCRE {
+            let newText = SearchEngine.replaceMatch(
+                in: textView.string,
+                at: match,
+                with: replaceText,
+                pattern: findText,
+                usePCRE: true,
+                caseSensitive: caseSensitive
+            )
+            let fullRange = NSRange(location: 0, length: (textView.string as NSString).length)
+            textView.insertText(newText, replacementRange: fullRange)
+        } else {
+            // Simple replacement
+            textView.insertText(replaceText, replacementRange: match)
+        }
         
         // Re-search to update matches after replacement
         performSearch()

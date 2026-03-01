@@ -168,12 +168,50 @@ final class SearchEngineTests: XCTestCase {
         XCTAssertEqual(result, "catXXX dogXXX")
     }
     
+    func testReplaceAllRegexWithBackreference() {
+        // Test \1 syntax for capture groups
+        let text = "hello\n124\nworld"
+        let result = SearchEngine.replaceAll(in: text, pattern: "(^[0-9]+$)", replacement: "[\\1]", usePCRE: true)
+        
+        XCTAssertEqual(result, "hello\n[124]\nworld")
+    }
+    
+    func testReplaceAllRegexWithDollarBackreference() {
+        // Test $1 syntax for capture groups
+        let text = "hello\n124\nworld"
+        let result = SearchEngine.replaceAll(in: text, pattern: "(^[0-9]+$)", replacement: "[$1]", usePCRE: true)
+        
+        XCTAssertEqual(result, "hello\n[124]\nworld")
+    }
+    
+    func testReplaceAllRegexWithMultipleGroups() {
+        let text = "John Smith"
+        let result = SearchEngine.replaceAll(in: text, pattern: "(\\w+) (\\w+)", replacement: "$2, $1", usePCRE: true)
+        
+        XCTAssertEqual(result, "Smith, John")
+    }
+    
     func testReplaceMatch() {
         let text = "Hello World"
         let range = NSRange(location: 6, length: 5)
         let result = SearchEngine.replaceMatch(in: text, at: range, with: "Universe")
         
         XCTAssertEqual(result, "Hello Universe")
+    }
+    
+    func testReplaceMatchWithBackreference() {
+        let text = "hello\n124\nworld"
+        let range = NSRange(location: 6, length: 3) // "124"
+        let result = SearchEngine.replaceMatch(
+            in: text,
+            at: range,
+            with: "[\\1]",
+            pattern: "(^[0-9]+$)",
+            usePCRE: true,
+            caseSensitive: false
+        )
+        
+        XCTAssertEqual(result, "hello\n[124]\nworld")
     }
     
     func testReplaceMatchInvalidRange() {
