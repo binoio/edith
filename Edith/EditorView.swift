@@ -33,6 +33,11 @@ struct EditorView: NSViewRepresentable {
         // Apply initial syntax highlighting (in-place, doesn't replace content)
         applyHighlighting(to: scrollView, immediate: true)
         
+        // Make text view first responder after a brief delay to ensure window is ready
+        DispatchQueue.main.async {
+            textView.window?.makeFirstResponder(textView)
+        }
+        
         return scrollView
     }
     
