@@ -156,12 +156,10 @@ struct FindReplaceView: View {
                     Button("Find Next") {
                         state.findNext()
                     }
-                    .keyboardShortcut("g", modifiers: .command)
                     
                     Button("Find Previous") {
                         state.findPrevious()
                     }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
                     
                     Button("Find All") {
                         state.findAll()
