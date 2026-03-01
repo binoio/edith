@@ -82,116 +82,143 @@ struct MultilineTextField: NSViewRepresentable {
 /// Find & Replace window view
 struct FindReplaceView: View {
     @ObservedObject var state: FindReplaceState
+    @ObservedObject var manager: FindReplaceManager
     
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Left side: Fields and options
-            VStack(alignment: .leading, spacing: 12) {
-                // Find field
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Find:")
-                        .font(.headline)
-                    MultilineTextField(text: $state.findText, placeholder: "Search text") {
-                        state.findNext()
+        VStack(alignment: .leading, spacing: 12) {
+            // Document selector
+            HStack {
+                Text("Document:")
+                    .font(.headline)
+                Picker("", selection: Binding(
+                    get: { manager.activeState.map { ObjectIdentifier($0) } },
+                    set: { newId in
+                        if let newId = newId,
+                           let doc = manager.documents.first(where: { $0.id == newId }) {
+                            manager.selectDocument(doc.state)
+                        }
                     }
-                    .frame(height: 60)
-                    .onChange(of: state.findText) { _ in
-                        state.performSearch()
-                    }
-                }
-                
-                // Replace field
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Replace:")
-                        .font(.headline)
-                    MultilineTextField(text: $state.replaceText, placeholder: "Replacement text")
-                        .frame(height: 60)
-                }
-                
-                Divider()
-                
-                // Options in a grid
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 20) {
-                        Toggle("Case sensitive", isOn: $state.caseSensitive)
-                            .onChange(of: state.caseSensitive) { _ in state.performSearch() }
-                        
-                        Toggle("PCRE syntax", isOn: $state.usePCRE)
-                            .onChange(of: state.usePCRE) { _ in state.performSearch() }
-                    }
-                    
-                    HStack(spacing: 20) {
-                        Toggle("Selected text only", isOn: $state.selectedTextOnly)
-                            .disabled(state.initialSelectionRange == nil)
-                            .onChange(of: state.selectedTextOnly) { _ in state.performSearch() }
-                        
-                        Toggle("Wrap around", isOn: $state.wrapAround)
+                )) {
+                    ForEach(manager.documents) { doc in
+                        Text(doc.name).tag(Optional(doc.id))
                     }
                 }
-                
-                // Match count - always reserve space to prevent layout shift
-                HStack {
-                    if state.findText.isEmpty {
-                        Text(" ")
-                            .foregroundColor(.clear)
-                    } else if state.hasMatches {
-                        Text("\(state.currentMatchIndex + 1) of \(state.totalMatches) matches")
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("No matches")
-                            .foregroundColor(.red)
-                    }
-                    Spacer()
-                }
-                .frame(height: 16)
-                
-                Spacer()
+                .labelsHidden()
+                .frame(maxWidth: 250)
             }
             
             Divider()
             
-            // Right side: Action buttons in a column
-            VStack(spacing: 8) {
-                Group {
-                    Button("Find Next") {
-                        state.findNext()
+            HStack(alignment: .top, spacing: 16) {
+                // Left side: Fields and options
+                VStack(alignment: .leading, spacing: 12) {
+                    // Find field
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Find:")
+                            .font(.headline)
+                        MultilineTextField(text: $state.findText, placeholder: "Search text") {
+                            state.findNext()
+                        }
+                        .frame(height: 60)
+                        .onChange(of: state.findText) { _ in
+                            state.performSearch()
+                        }
                     }
                     
-                    Button("Find Previous") {
-                        state.findPrevious()
+                    // Replace field
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Replace:")
+                            .font(.headline)
+                        MultilineTextField(text: $state.replaceText, placeholder: "Replacement text")
+                            .frame(height: 60)
                     }
                     
-                    Button("Find All") {
-                        state.findAll()
+                    Divider()
+                    
+                    // Options in a grid
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 20) {
+                            Toggle("Case sensitive", isOn: $state.caseSensitive)
+                                .onChange(of: state.caseSensitive) { _ in state.performSearch() }
+                            
+                            Toggle("PCRE syntax", isOn: $state.usePCRE)
+                                .onChange(of: state.usePCRE) { _ in state.performSearch() }
+                        }
+                        
+                        HStack(spacing: 20) {
+                            Toggle("Selected text only", isOn: $state.selectedTextOnly)
+                                .disabled(state.initialSelectionRange == nil)
+                                .onChange(of: state.selectedTextOnly) { _ in state.performSearch() }
+                            
+                            Toggle("Wrap around", isOn: $state.wrapAround)
+                        }
                     }
                     
-                    Button("Extract All") {
-                        state.extractAll()
+                    // Match count - always reserve space to prevent layout shift
+                    HStack {
+                        if state.findText.isEmpty {
+                            Text(" ")
+                                .foregroundColor(.clear)
+                        } else if state.hasMatches {
+                            Text("\(state.currentMatchIndex + 1) of \(state.totalMatches) matches")
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("No matches")
+                                .foregroundColor(.red)
+                        }
+                        Spacer()
                     }
+                    .frame(height: 16)
+                    
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
                 
                 Divider()
-                    .padding(.vertical, 4)
                 
-                Group {
-                    Button("Replace Next") {
-                        state.replaceNext()
+                // Right side: Action buttons in a column
+                VStack(spacing: 8) {
+                    Group {
+                        Button("Find Next") {
+                            state.findNext()
+                        }
+                        
+                        Button("Find Previous") {
+                            state.findPrevious()
+                        }
+                        
+                        Button("Find All") {
+                            state.findAll()
+                        }
+                        
+                        Button("Extract All") {
+                            state.extractAll()
+                        }
                     }
+                    .frame(maxWidth: .infinity)
                     
-                    Button("Replace All") {
-                        state.replaceAll()
+                    Divider()
+                        .padding(.vertical, 4)
+                    
+                    Group {
+                        Button("Replace Next") {
+                            state.replaceNext()
+                        }
+                        
+                        Button("Replace All") {
+                            state.replaceAll()
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
-                
-                Spacer()
+                .frame(width: 120)
             }
-            .frame(width: 120)
         }
         .padding()
-        .frame(minWidth: 520, minHeight: 300)
+        .frame(minWidth: 520, minHeight: 340)
         .onAppear {
+            manager.ensureActiveState()
             state.captureSelection()
             if !state.findText.isEmpty {
                 state.performSearch()

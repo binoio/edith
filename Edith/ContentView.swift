@@ -104,8 +104,9 @@ struct ContentView: View {
         .onAppear {
             startWatchingFile()
             registerWithTracker()
-            // Register this document's find/replace state as active
-            FindReplaceManager.shared.registerActiveState(findReplaceState)
+            // Register this document's find/replace state with document name
+            let docName = getDocumentName()
+            FindReplaceManager.shared.registerActiveState(findReplaceState, documentName: docName)
             
             // Check for pending extracted content (from Extract All)
             if let pendingContent = ExtractedContentManager.shared.pendingContent {
@@ -122,6 +123,24 @@ struct ContentView: View {
             // Unregister when document closes
             FindReplaceManager.shared.unregisterState(findReplaceState)
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            // Update document name when window becomes key (catches saves and other changes)
+            if let window = notification.object as? NSWindow,
+               window.contentView != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    let docName = getDocumentName()
+                    FindReplaceManager.shared.updateDocumentName(findReplaceState, name: docName)
+                }
+            }
+        }
+    }
+    
+    private func getDocumentName() -> String {
+        if let windowController = NSApp.keyWindow?.windowController,
+           let nsDoc = windowController.document as? NSDocument {
+            return nsDoc.displayName
+        }
+        return "Untitled"
     }
     
     private func getDocumentFileURL() -> URL? {

@@ -266,9 +266,15 @@ struct EdithApp: App {
         // Find & Replace window - uses the shared manager to get active document's state
         Window("Find & Replace", id: "find-replace") {
             if let state = findReplaceManager.activeState {
-                FindReplaceView(state: state)
+                FindReplaceView(state: state, manager: findReplaceManager)
+            } else if !findReplaceManager.documents.isEmpty {
+                // Documents exist but no active state - trigger selection
+                FindReplaceView(state: findReplaceManager.documents.first!.state, manager: findReplaceManager)
+                    .onAppear {
+                        findReplaceManager.ensureActiveState()
+                    }
             } else {
-                Text("No document selected")
+                Text("No documents open")
                     .foregroundColor(.secondary)
                     .frame(width: 300, height: 100)
             }
