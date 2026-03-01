@@ -177,9 +177,19 @@ struct EditorView: NSViewRepresentable {
         
         private func updateSelectedText() {
             guard let textView = textView else { return }
-            let selectedRange = textView.selectedRange()
             let text = textView.string as NSString
-            let selectedText = selectedRange.length > 0 ? text.substring(with: selectedRange) : ""
+            
+            // Handle multiple non-contiguous selections (e.g., from Command+click)
+            let ranges = textView.selectedRanges.compactMap { $0.rangeValue }
+            var selectedParts: [String] = []
+            
+            for range in ranges {
+                if range.length > 0 {
+                    selectedParts.append(text.substring(with: range))
+                }
+            }
+            
+            let selectedText = selectedParts.joined(separator: "\n")
             DispatchQueue.main.async {
                 self.parent.selectedText = selectedText
             }
