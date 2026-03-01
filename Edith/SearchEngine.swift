@@ -72,7 +72,7 @@ struct SearchEngine {
         range: NSRange
     ) -> [NSRange] {
         do {
-            var options: NSRegularExpression.Options = []
+            var options: NSRegularExpression.Options = [.anchorsMatchLines]
             if !caseSensitive {
                 options.insert(.caseInsensitive)
             }

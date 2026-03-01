@@ -104,6 +104,29 @@ final class SearchEngineTests: XCTestCase {
         XCTAssertEqual(matches.count, 1)
     }
     
+    func testFindRegexLineAnchors() {
+        // Test that ^ and $ match line boundaries, not just string boundaries
+        let text = "hello\n124\nworld"
+        let matches = SearchEngine.findMatches(in: text, pattern: "^[0-9]+$", usePCRE: true)
+        
+        XCTAssertEqual(matches.count, 1)
+        XCTAssertEqual((text as NSString).substring(with: matches[0]), "124")
+    }
+    
+    func testFindRegexStartOfLine() {
+        let text = "line1\nline2\nline3"
+        let matches = SearchEngine.findMatches(in: text, pattern: "^line", usePCRE: true)
+        
+        XCTAssertEqual(matches.count, 3)
+    }
+    
+    func testFindRegexEndOfLine() {
+        let text = "cat\ndog\nbat"
+        let matches = SearchEngine.findMatches(in: text, pattern: "at$", usePCRE: true)
+        
+        XCTAssertEqual(matches.count, 2) // "cat" and "bat"
+    }
+    
     // MARK: - Search Range Tests
     
     func testFindWithSearchRange() {
