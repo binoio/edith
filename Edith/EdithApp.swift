@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+// MARK: - Notification names
+extension Notification.Name {
+    static let openFindReplace = Notification.Name("openFindReplace")
+}
+
 // MARK: - Open Documents Tracker (for SwiftUI DocumentGroup)
 class OpenDocumentsTracker: ObservableObject {
     static let shared = OpenDocumentsTracker()
@@ -188,10 +193,46 @@ struct ZoomCommands: Commands {
     }
 }
 
+// Search menu commands
+struct SearchCommands: Commands {
+    @ObservedObject private var findReplaceManager = FindReplaceManager.shared
+    
+    var body: some Commands {
+        CommandMenu("Search") {
+            Button("Find & Replace...") {
+                // Use NSApp to open the window
+                if let window = NSApp.windows.first(where: { $0.title == "Find & Replace" }) {
+                    window.makeKeyAndOrderFront(nil)
+                } else {
+                    // Post a notification to open the window
+                    NotificationCenter.default.post(name: .openFindReplace, object: nil)
+                }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            
+            Divider()
+            
+            Button("Find Next") {
+                findReplaceManager.findNext()
+            }
+            .keyboardShortcut("g", modifiers: .command)
+            .disabled(findReplaceManager.activeState == nil)
+            
+            Button("Find Previous") {
+                findReplaceManager.findPrevious()
+            }
+            .keyboardShortcut("g", modifiers: [.command, .shift])
+            .disabled(findReplaceManager.activeState == nil)
+        }
+    }
+}
+
 @main
 struct EdithApp: App {
     @NSApplicationDelegateAdaptor(EdithAppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager()
+    @ObservedObject private var findReplaceManager = FindReplaceManager.shared
+    @Environment(\.openWindow) var openWindow
     
     var body: some Scene {
         DocumentGroup(newDocument: TextDocument()) { file in
@@ -200,6 +241,9 @@ struct EdithApp: App {
                 .onAppear {
                     // Pass settings to app delegate
                     appDelegate.settingsManager = settingsManager
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .openFindReplace)) { _ in
+                    openWindow(id: "find-replace")
                 }
         }
         .commands {
@@ -211,11 +255,26 @@ struct EdithApp: App {
             }
             
             ZoomCommands(settingsManager: settingsManager)
+            SearchCommands()
         }
         
         Settings {
             SettingsView()
                 .environmentObject(settingsManager)
         }
+        
+        // Find & Replace window - uses the shared manager to get active document's state
+        Window("Find & Replace", id: "find-replace") {
+            if let state = findReplaceManager.activeState {
+                FindReplaceView(state: state)
+            } else {
+                Text("No document selected")
+                    .foregroundColor(.secondary)
+                    .frame(width: 300, height: 100)
+            }
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.topTrailing)
     }
 }

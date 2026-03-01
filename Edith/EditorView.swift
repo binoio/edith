@@ -13,6 +13,7 @@ struct EditorView: NSViewRepresentable {
     @Binding var cursorPosition: CursorPosition
     var syntaxLanguage: SyntaxLanguage
     @ObservedObject var syntaxHighlighter: SyntaxHighlighter
+    @ObservedObject var findReplaceState: FindReplaceState
     
     func makeNSView(context: Context) -> LineNumberScrollView {
         let scrollView = LineNumberScrollView()
@@ -23,6 +24,9 @@ struct EditorView: NSViewRepresentable {
         
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
+        
+        // Wire up find/replace state to text view
+        findReplaceState.textView = textView
         
         applySettings(to: scrollView)
         

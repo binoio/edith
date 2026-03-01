@@ -52,6 +52,7 @@ struct ContentView: View {
     @StateObject private var zoomState = DocumentZoomState()
     @StateObject private var fileWatcher = FileWatcher()
     @StateObject private var syntaxHighlighter = SyntaxHighlighter()
+    @StateObject private var findReplaceState = FindReplaceState()
     
     @State private var showFileChangedBanner = false
     @State private var cursorPosition = CursorPosition()
@@ -76,7 +77,8 @@ struct ContentView: View {
                 zoomState: zoomState,
                 cursorPosition: $cursorPosition,
                 syntaxLanguage: document.syntaxLanguage,
-                syntaxHighlighter: syntaxHighlighter
+                syntaxHighlighter: syntaxHighlighter,
+                findReplaceState: findReplaceState
             )
             .environmentObject(settingsManager)
             
@@ -90,6 +92,7 @@ struct ContentView: View {
             }
         }
         .focusedSceneValue(\.documentZoomState, zoomState)
+        .focusedSceneValue(\.findReplaceState, findReplaceState)
         .onReceive(zoomState.$zoom) { newZoom in
             settingsManager.activeDocumentZoom = newZoom
         }
@@ -101,10 +104,14 @@ struct ContentView: View {
         .onAppear {
             startWatchingFile()
             registerWithTracker()
+            // Register this document's find/replace state as active
+            FindReplaceManager.shared.registerActiveState(findReplaceState)
         }
         .onDisappear {
             fileWatcher.stopWatching()
             unregisterFromTracker()
+            // Unregister when document closes
+            FindReplaceManager.shared.unregisterState(findReplaceState)
         }
     }
     

@@ -19,6 +19,10 @@
 		010 /* StatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109; };
 		011 /* SyntaxLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110; };
 		012 /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111; };
+		07B5AD9E7F7613BAE9D1CC99 /* SearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F507FD22BD2CD5BE0FC427 /* SearchEngine.swift */; };
+		096AB0675ABCC9CC23143B31 /* FindReplaceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A3F4108A48CED87CFEC1297 /* FindReplaceState.swift */; };
+		FRB10001 /* FindReplaceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FRM10001 /* FindReplaceManager.swift */; };
+		11EC127108096AEEBBD68E92 /* FindReplaceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D948C8E9C04CD3E50F0F6C0D /* FindReplaceWindow.swift */; };
 		P01 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = P02 /* HighlightSwift */; };
 		T01 /* LineNumberGutterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T10; };
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
@@ -29,8 +33,10 @@
 		T08 /* StatusBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T17; };
 		T09 /* FileWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T18; };
 		T0A /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T19; };
+		B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */; };
 		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
 		U03 /* SessionRestoreUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U12; };
+		SRB1 /* SearchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SRU1 /* SearchUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +68,10 @@
 		109 /* StatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBar.swift; sourceTree = "<group>"; };
 		110 /* SyntaxLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxLanguage.swift; sourceTree = "<group>"; };
 		111 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		24F507FD22BD2CD5BE0FC427 /* SearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchEngine.swift; sourceTree = "<group>"; };
+		0A3F4108A48CED87CFEC1297 /* FindReplaceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceState.swift; sourceTree = "<group>"; };
+		FRM10001 /* FindReplaceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceManager.swift; sourceTree = "<group>"; };
+		D948C8E9C04CD3E50F0F6C0D /* FindReplaceWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceWindow.swift; sourceTree = "<group>"; };
 		112 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		301 /* Edith.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Edith.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,9 +86,11 @@
 		T17 /* StatusBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarTests.swift; sourceTree = "<group>"; };
 		T18 /* FileWatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcherTests.swift; sourceTree = "<group>"; };
 		T19 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchEngineTests.swift; sourceTree = "<group>"; };
 		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
 		U11 /* EdithUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		U12 /* SessionRestoreUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreUITests.swift; sourceTree = "<group>"; };
+		SRU1 /* SearchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +129,10 @@
 				109 /* StatusBar.swift */,
 				110 /* SyntaxLanguage.swift */,
 				111 /* SyntaxHighlighter.swift */,
+				D948C8E9C04CD3E50F0F6C0D /* FindReplaceWindow.swift */,
+				0A3F4108A48CED87CFEC1297 /* FindReplaceState.swift */,
+				FRM10001 /* FindReplaceManager.swift */,
+				24F507FD22BD2CD5BE0FC427 /* SearchEngine.swift */,
 				112 /* Info.plist */,
 				201 /* Assets.xcassets */,
 				401 /* Edith.entitlements */,
@@ -146,6 +162,7 @@
 				T17 /* StatusBarTests.swift */,
 				T18 /* FileWatcherTests.swift */,
 				T19 /* SyntaxHighlighterTests.swift */,
+				A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */,
 			);
 			path = EdithTests;
 			sourceTree = "<group>";
@@ -155,6 +172,7 @@
 			children = (
 				U10 /* ZoomUITests.swift */,
 				U12 /* SessionRestoreUITests.swift */,
+				SRU1 /* SearchUITests.swift */,
 			);
 			path = EdithUITests;
 			sourceTree = "<group>";
@@ -281,6 +299,10 @@
 				010 /* StatusBar.swift in Sources */,
 				011 /* SyntaxLanguage.swift in Sources */,
 				012 /* SyntaxHighlighter.swift in Sources */,
+				11EC127108096AEEBBD68E92 /* FindReplaceWindow.swift in Sources */,
+				096AB0675ABCC9CC23143B31 /* FindReplaceState.swift in Sources */,
+				FRB10001 /* FindReplaceManager.swift in Sources */,
+				07B5AD9E7F7613BAE9D1CC99 /* SearchEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -297,6 +319,7 @@
 				T08 /* StatusBarTests.swift in Sources */,
 				T09 /* FileWatcherTests.swift in Sources */,
 				T0A /* SyntaxHighlighterTests.swift in Sources */,
+				B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -306,6 +329,7 @@
 			files = (
 				U01 /* ZoomUITests.swift in Sources */,
 				U03 /* SessionRestoreUITests.swift in Sources */,
+				SRB1 /* SearchUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

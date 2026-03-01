@@ -1,8 +1,8 @@
 # Edith - Iteration Notes
 
-## Current State: v1.7 Syntax Highlighting ✓
+## Current State: v1.8 Find & Replace (in progress)
 
-Build and all tests verified. On feature/syntax-highlighting branch.
+On `search-and-process` branch. Feature is implemented with full test coverage.
 
 ## What's Done
 - File > New Text Document (⌘N)
@@ -18,20 +18,21 @@ Build and all tests verified. On feature/syntax-highlighting branch.
 - File change detection with reload/ignore banner
 - Help window (⌘?)
 - Session restore on launch
-- **Status Bar** with line/column, counts, encoding, line ending, **syntax language picker**
-- **Syntax Highlighting** via HighlightSwift:
-  - Auto-detects from file extension on open
-  - Supports: HTML, CSS, Python, JSON, Markdown, JavaScript, Swift, XML, YAML, SQL, Shell
-  - Manual override via status bar picker
-  - In-place coloring preserves cursor position
-  - Plain text files have no highlighting
-  - GitHub theme colors (light/dark)
+- **Status Bar** with line/column, counts, encoding, line ending, syntax language picker
+- **Syntax Highlighting** via HighlightSwift
 - Document type registration for all supported file types
+- **Find & Replace** (Search menu):
+  - Search menu with Find & Replace (⌘F), Find Next (⌘G), Find Previous (⇧⌘G)
+  - Find & Replace window with Find/Replace text fields
+  - Options: Case Sensitive, PCRE syntax (regex)
+  - Search scope: Selected Text Only, Wrap Around
+  - Actions: Find Next, Find Previous, Find All, Extract All, Replace Next, Replace All
 
 ## Next Steps
-1. Merge feature/syntax-highlighting to main when ready
-2. Consider adding more syntax languages (Ruby, Go, Rust, C/C++, Java)
-3. Consider adding syntax theme selection in Settings
+1. Manual testing of Find & Replace feature
+2. Merge search-and-process to main when confirmed working
+3. Consider adding more syntax languages (Ruby, Go, Rust, C/C++, Java)
+4. Consider adding syntax theme selection in Settings
 
 ## Tests
 Run `./scripts/test.sh` to verify all functionality.
