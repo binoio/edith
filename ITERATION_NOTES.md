@@ -1,8 +1,8 @@
 # Edith - Iteration Notes
 
-## Current State: v1.8 Find & Replace (in progress)
+## Current State: vim-like branch (experimental)
 
-On `search-and-process` branch. Feature is implemented with full test coverage.
+On `vim-like` branch. Experimental vim modal editing feature.
 
 ## What's Done
 - File > New Text Document (⌘N)
@@ -10,6 +10,7 @@ On `search-and-process` branch. Feature is implemented with full test coverage.
 - General settings: Re-open documents, Restore unsaved changes, Refresh documents changed on disk
 - Restore Defaults button in settings
 - Line number gutter with proper alignment and styling
+- **Line selection via gutter** - click/drag line numbers to select lines, Cmd+click for non-contiguous
 - View > Show/Hide Line Numbers toggle (⇧⌘L)
 - View > Show/Hide Status Bar toggle (⇧⌘/)
 - View > Zoom In (⌘=), Zoom Out (⌘-), Actual Size (⌘0)
@@ -21,18 +22,22 @@ On `search-and-process` branch. Feature is implemented with full test coverage.
 - **Status Bar** with line/column, counts, encoding, line ending, syntax language picker
 - **Syntax Highlighting** via HighlightSwift
 - Document type registration for all supported file types
-- **Find & Replace** (Search menu):
-  - Search menu with Find & Replace (⌘F), Find Next (⌘G), Find Previous (⇧⌘G)
-  - Find & Replace window with Find/Replace text fields
-  - Options: Case Sensitive, PCRE syntax (regex)
-  - Search scope: Selected Text Only, Wrap Around
-  - Actions: Find Next, Find Previous, Find All, Extract All, Replace Next, Replace All
+- **Find & Replace** (Search menu) - fully featured with PCRE, document selector, Extract All
+
+## Experimental: Vim-like Mode (this branch)
+- **Double-tap Esc** to toggle between insert and normal mode
+- **Green glow border** indicates when in normal/command mode
+- **Normal mode navigation**: h/j/k/l, w/b/e, 0/$/^, gg/G
+- **Insert mode entry**: i/a/I/A/o/O
+- **Edit commands**: x (delete char), dd (delete line)
+- **Command mode** (via :): w, q, q!, wq, wq!, line numbers
+- **Substitution**: :s/pattern/replacement/g and :%s/pattern/replacement/g
 
 ## Next Steps
-1. Manual testing of Find & Replace feature
-2. Merge search-and-process to main when confirmed working
-3. Consider adding more syntax languages (Ruby, Go, Rust, C/C++, Java)
-4. Consider adding syntax theme selection in Settings
+1. Test vim mode thoroughly (navigation, editing, commands)
+2. Add more vim commands: y/p yank/paste, visual mode, / search
+3. Consider adding Settings option to enable/disable vim mode
+4. Merge to main when stable
 
 ## Tests
 Run `./scripts/test.sh` to verify all functionality.
