@@ -27,6 +27,9 @@ class VimModeState: ObservableObject {
     private var lastEscTime: Date?
     private let doubleTapThreshold: TimeInterval = 0.3
     
+    // Number prefix for commands (e.g., 5j, 10G)
+    private var numberPrefix: String = ""
+    
     // Reference to text view for executing commands
     weak var textView: NSTextView?
     
@@ -84,91 +87,148 @@ class VimModeState: ObservableObject {
     func handleNormalModeKey(_ key: String, modifiers: NSEvent.ModifierFlags) -> Bool {
         guard mode == .normal, let textView = textView else { return false }
         
+        // Handle digit keys for number prefix (except 0 at start which is line start)
+        if key >= "1" && key <= "9" || (key == "0" && !numberPrefix.isEmpty) {
+            numberPrefix += key
+            statusMessage = numberPrefix
+            return true
+        }
+        
+        // Get count from number prefix (default 1)
+        let count = Int(numberPrefix) ?? 1
+        
         switch key {
         // Navigation - basic movement
         case "h":
-            moveLeft(textView)
+            for _ in 0..<count { moveLeft(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "j":
-            moveDown(textView)
+            for _ in 0..<count { moveDown(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "k":
-            moveUp(textView)
+            for _ in 0..<count { moveUp(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "l":
-            moveRight(textView)
+            for _ in 0..<count { moveRight(textView) }
+            numberPrefix = ""
+            statusMessage = ""
             
         // Word navigation
         case "w":
-            moveWordForward(textView)
+            for _ in 0..<count { moveWordForward(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "b":
-            moveWordBackward(textView)
+            for _ in 0..<count { moveWordBackward(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "e":
-            moveToEndOfWord(textView)
+            for _ in 0..<count { moveToEndOfWord(textView) }
+            numberPrefix = ""
+            statusMessage = ""
             
         // Line navigation
         case "0":
             moveToStartOfLine(textView)
+            numberPrefix = ""
+            statusMessage = ""
         case "$":
             moveToEndOfLine(textView)
+            numberPrefix = ""
+            statusMessage = ""
         case "^":
             moveToFirstNonBlank(textView)
+            numberPrefix = ""
+            statusMessage = ""
             
         // Document navigation
         case "G":
-            if modifiers.contains(.shift) || key == "G" {
+            if !numberPrefix.isEmpty {
+                // nG goes to line n
+                goToLine(count)
+            } else {
+                // G alone goes to end
                 moveToEndOfDocument(textView)
             }
+            numberPrefix = ""
+            statusMessage = ""
         case "g":
-            // Will need to track for gg
-            statusMessage = "g"
+            // Track for gg command
+            if statusMessage == "g" {
+                moveToStartOfDocument(textView)
+                statusMessage = ""
+                numberPrefix = ""
+            } else {
+                statusMessage = numberPrefix + "g"
+            }
             return true
             
         // Insert mode entry
         case "i":
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
         case "a":
             moveRight(textView)
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
         case "I":
             moveToFirstNonBlank(textView)
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
         case "A":
             moveToEndOfLine(textView)
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
         case "o":
             insertLineBelow(textView)
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
         case "O":
             insertLineAbove(textView)
             mode = .insert
             statusMessage = "-- INSERT --"
+            numberPrefix = ""
             
         // Command mode
         case ":":
             mode = .command
             commandText = ""
             statusMessage = ":"
+            numberPrefix = ""
             
         // Delete
         case "x":
-            deleteCharacter(textView)
+            for _ in 0..<count { deleteCharacter(textView) }
+            numberPrefix = ""
+            statusMessage = ""
         case "d":
-            statusMessage = "d"
+            if statusMessage.hasSuffix("d") {
+                // dd - delete line(s)
+                for _ in 0..<count { deleteLine(textView) }
+                statusMessage = ""
+                numberPrefix = ""
+            } else {
+                statusMessage = numberPrefix + "d"
+            }
             return true
             
         default:
             // Check for composed commands
-            if statusMessage == "g" && key == "g" {
+            if statusMessage.hasSuffix("g") && key == "g" {
                 moveToStartOfDocument(textView)
                 statusMessage = ""
-            } else if statusMessage == "d" && key == "d" {
-                deleteLine(textView)
-                statusMessage = ""
+                numberPrefix = ""
             } else {
                 statusMessage = ""
+                numberPrefix = ""
                 return false
             }
         }
@@ -276,8 +336,40 @@ class VimModeState: ObservableObject {
     }
     
     private func moveToEndOfWord(_ textView: NSTextView) {
-        textView.moveWordForward(nil)
-        textView.moveBackward(nil)
+        // Vim's `e` moves to end of current/next word
+        let content = textView.string as NSString
+        var location = textView.selectedRange().location
+        
+        guard location < content.length else { return }
+        
+        // Skip current character
+        location += 1
+        
+        // Skip whitespace
+        while location < content.length {
+            let char = Character(UnicodeScalar(content.character(at: location))!)
+            if !char.isWhitespace {
+                break
+            }
+            location += 1
+        }
+        
+        // Move to end of word (stop before whitespace or punctuation)
+        while location < content.length {
+            let char = Character(UnicodeScalar(content.character(at: location))!)
+            if char.isWhitespace || char.isPunctuation {
+                break
+            }
+            location += 1
+        }
+        
+        // Position at last character of word
+        if location > 0 {
+            location -= 1
+        }
+        
+        textView.setSelectedRange(NSRange(location: location, length: 0))
+        textView.scrollRangeToVisible(NSRange(location: location, length: 0))
     }
     
     private func moveToStartOfLine(_ textView: NSTextView) {
@@ -330,17 +422,31 @@ class VimModeState: ObservableObject {
     
     private func deleteCharacter(_ textView: NSTextView) {
         let range = textView.selectedRange()
-        if range.location < textView.string.count {
-            textView.setSelectedRange(NSRange(location: range.location, length: 1))
-            textView.delete(nil)
+        let content = textView.string as NSString
+        if range.location < content.length {
+            let deleteRange = NSRange(location: range.location, length: 1)
+            if textView.shouldChangeText(in: deleteRange, replacementString: "") {
+                textView.replaceCharacters(in: deleteRange, with: "")
+                textView.didChangeText()
+            }
         }
     }
     
     private func deleteLine(_ textView: NSTextView) {
         let content = textView.string as NSString
-        let lineRange = content.lineRange(for: textView.selectedRange())
-        textView.setSelectedRange(lineRange)
-        textView.delete(nil)
+        guard content.length > 0 else { return }
+        
+        let currentRange = textView.selectedRange()
+        let lineRange = content.lineRange(for: currentRange)
+        
+        if textView.shouldChangeText(in: lineRange, replacementString: "") {
+            textView.replaceCharacters(in: lineRange, with: "")
+            textView.didChangeText()
+            
+            // Position cursor at start of next line (or end of document)
+            let newLocation = min(lineRange.location, textView.string.count)
+            textView.setSelectedRange(NSRange(location: newLocation, length: 0))
+        }
     }
     
     // MARK: - Document Commands
