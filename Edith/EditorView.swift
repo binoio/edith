@@ -291,6 +291,11 @@ class LineNumberView: NSView {
     // Track the baseline width at default zoom (zoom=1.0)
     private var baselineWidth: CGFloat = 0
     
+    // Mouse tracking for line selection
+    private var isDragging = false
+    private var dragStartLine: Int?
+    private var commandKeyHeld = false
+    
     // Set the baseline width - call this when at default zoom level
     func setBaselineWidth() {
         baselineWidth = calculateCurrentWidth()
@@ -321,6 +326,213 @@ class LineNumberView: NSView {
     
     // Use flipped coordinates to match NSTextView
     override var isFlipped: Bool { true }
+    
+    // MARK: - Mouse Handling for Line Selection
+    
+    override func mouseDown(with event: NSEvent) {
+        guard let textView = textView else { return }
+        
+        let location = convert(event.locationInWindow, from: nil)
+        commandKeyHeld = event.modifierFlags.contains(.command)
+        
+        if let lineNumber = lineNumber(at: location) {
+            isDragging = true
+            dragStartLine = lineNumber
+            
+            // Make text view first responder
+            window?.makeFirstResponder(textView)
+            
+            if commandKeyHeld {
+                // Command+click: toggle this line in selection
+                toggleLineSelection(lineNumber)
+            } else {
+                // Normal click: select just this line
+                selectLines(from: lineNumber, to: lineNumber)
+            }
+        }
+    }
+    
+    override func mouseDragged(with event: NSEvent) {
+        guard isDragging, let startLine = dragStartLine, !commandKeyHeld else { return }
+        
+        let location = convert(event.locationInWindow, from: nil)
+        if let currentLine = lineNumber(at: location) {
+            selectLines(from: startLine, to: currentLine)
+        }
+    }
+    
+    override func mouseUp(with event: NSEvent) {
+        isDragging = false
+        dragStartLine = nil
+        commandKeyHeld = false
+    }
+    
+    // Get line number at a y position in the gutter
+    private func lineNumber(at point: NSPoint) -> Int? {
+        guard let textView = textView,
+              let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else { return nil }
+        
+        let content = textView.string as NSString
+        let visibleRect = textView.visibleRect
+        let inset = textView.textContainerInset
+        
+        // Convert point to text view coordinates
+        let textViewY = point.y + visibleRect.origin.y - inset.height
+        
+        if content.length == 0 {
+            return 1
+        }
+        
+        // Find which line this y coordinate corresponds to
+        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+        let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+        
+        // Count lines before visible range
+        var lineNum = 1
+        var idx = 0
+        while idx < charRange.location {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            lineNum += 1
+            idx = NSMaxRange(range)
+        }
+        
+        // Find line at this y position
+        idx = charRange.location
+        while idx < content.length {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            let glyphIdx = layoutManager.glyphIndexForCharacter(at: idx)
+            let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
+            
+            let lineTop = lineRect.origin.y
+            let lineBottom = lineRect.origin.y + lineRect.height
+            
+            if textViewY >= lineTop && textViewY < lineBottom {
+                return lineNum
+            }
+            
+            lineNum += 1
+            idx = NSMaxRange(range)
+        }
+        
+        // Check for trailing empty line after final newline
+        if content.length > 0 {
+            let lastChar = content.character(at: content.length - 1)
+            if lastChar == 0x0A || lastChar == 0x0D {
+                let lastGlyphIdx = layoutManager.glyphIndexForCharacter(at: content.length - 1)
+                let lastLineRect = layoutManager.lineFragmentRect(forGlyphAt: lastGlyphIdx, effectiveRange: nil)
+                let trailingTop = lastLineRect.origin.y + lastLineRect.height
+                if textViewY >= trailingTop {
+                    return lineNum
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    // Get the character range for a given line number (1-based)
+    private func rangeForLine(_ lineNumber: Int) -> NSRange? {
+        guard let textView = textView else { return nil }
+        let content = textView.string as NSString
+        
+        if content.length == 0 {
+            return lineNumber == 1 ? NSRange(location: 0, length: 0) : nil
+        }
+        
+        var currentLine = 1
+        var idx = 0
+        
+        while idx < content.length {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            if currentLine == lineNumber {
+                return range
+            }
+            currentLine += 1
+            idx = NSMaxRange(range)
+        }
+        
+        // Handle trailing empty line
+        if currentLine == lineNumber && content.length > 0 {
+            let lastChar = content.character(at: content.length - 1)
+            if lastChar == 0x0A || lastChar == 0x0D {
+                return NSRange(location: content.length, length: 0)
+            }
+        }
+        
+        return nil
+    }
+    
+    // Select lines from startLine to endLine (inclusive, 1-based)
+    private func selectLines(from startLine: Int, to endLine: Int) {
+        guard let textView = textView else { return }
+        
+        let minLine = min(startLine, endLine)
+        let maxLine = max(startLine, endLine)
+        
+        guard let startRange = rangeForLine(minLine),
+              let endRange = rangeForLine(maxLine) else { return }
+        
+        let selectionStart = startRange.location
+        let selectionEnd = NSMaxRange(endRange)
+        let selectionRange = NSRange(location: selectionStart, length: selectionEnd - selectionStart)
+        
+        textView.setSelectedRange(selectionRange)
+        needsDisplay = true
+    }
+    
+    // Toggle a line in the current selection (for Command+click)
+    private func toggleLineSelection(_ lineNumber: Int) {
+        guard let textView = textView,
+              let lineRange = rangeForLine(lineNumber) else { return }
+        
+        var currentRanges = textView.selectedRanges.compactMap { $0.rangeValue }
+        
+        // Check if this line is already selected
+        let lineStart = lineRange.location
+        let lineEnd = NSMaxRange(lineRange)
+        
+        var foundIndex: Int?
+        for (index, range) in currentRanges.enumerated() {
+            if range.location <= lineStart && NSMaxRange(range) >= lineEnd {
+                foundIndex = index
+                break
+            }
+        }
+        
+        if let index = foundIndex {
+            // Line is selected - try to remove it
+            let range = currentRanges[index]
+            if range.location == lineStart && NSMaxRange(range) == lineEnd {
+                // Exact match, remove it
+                currentRanges.remove(at: index)
+            } else {
+                // Line is part of larger selection - split around it
+                let beforeRange = NSRange(location: range.location, length: lineStart - range.location)
+                let afterRange = NSRange(location: lineEnd, length: NSMaxRange(range) - lineEnd)
+                
+                currentRanges.remove(at: index)
+                if beforeRange.length > 0 {
+                    currentRanges.append(beforeRange)
+                }
+                if afterRange.length > 0 {
+                    currentRanges.append(afterRange)
+                }
+            }
+        } else {
+            // Line not selected - add it
+            currentRanges.append(lineRange)
+        }
+        
+        // Sort and apply ranges
+        if currentRanges.isEmpty {
+            textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
+        } else {
+            currentRanges.sort { $0.location < $1.location }
+            textView.setSelectedRanges(currentRanges.map { NSValue(range: $0) }, affinity: .downstream, stillSelecting: false)
+        }
+        needsDisplay = true
+    }
     
     // Gutter background color: light gray in light mode, dark complement in dark mode
     private static let gutterBackgroundColor: NSColor = {
