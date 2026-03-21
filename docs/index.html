@@ -249,8 +249,8 @@
         <header>
             <h1>Edith</h1>
             <p class="subtitle">The everyday text editor.</p>
-            <a href="https://github.com/binoio/edith/releases/latest" class="cta" id="download-btn">Download Latest Release</a>
-            <span class="version-info">Requires macOS 13.0 or later</span>
+            <a href="https://github.com/binoio/edith/releases/latest" class="cta" id="download-btn">Download for macOS</a>
+            <span class="version-info">Requires macOS 13.0 or later • <span id="version-number"></span></span>
         </header>
 
         <script>
@@ -263,7 +263,7 @@
                     if (dmgAsset) {
                         const btn = document.getElementById('download-btn');
                         btn.href = dmgAsset.browser_download_url;
-                        btn.innerText = `Download ${data.tag_name}`;
+                        document.getElementById('version-number').innerText = data.tag_name;
                     }
                 } catch (error) {
                     console.error('Error fetching latest release:', error);
