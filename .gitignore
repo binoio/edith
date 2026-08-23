@@ -63,3 +63,4 @@ credentials/
 *.log
 logs/
 .venv
+dist/
