@@ -6,5 +6,17 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+	<!-- Reopen previously open documents across launches (session restore) -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+	<!-- Sparkle: appcast and update downloads -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Sparkle in a sandboxed app: allow talking to its installer XPC services -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.edith.texteditor-spks</string>
+		<string>com.edith.texteditor-spki</string>
+	</array>
 </dict>
 </plist>

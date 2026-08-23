@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var settingsManager: SettingsManager
+    var updaterViewModel: UpdaterViewModel?
     
     var body: some View {
         TabView {
@@ -29,6 +30,13 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Editor Defaults", systemImage: "textformat")
                 }
+            
+            if let updaterViewModel {
+                UpdatesSettingsView(viewModel: updaterViewModel)
+                    .tabItem {
+                        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+                    }
+            }
         }
         .environmentObject(settingsManager)
         .frame(width: 500, height: 320)

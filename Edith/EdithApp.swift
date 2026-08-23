@@ -6,124 +6,147 @@
 //
 
 import SwiftUI
+import Sparkle
 
 // MARK: - Notification names
 extension Notification.Name {
     static let openFindReplace = Notification.Name("openFindReplace")
+    static let claimUntitledRestore = Notification.Name("claimUntitledRestore")
 }
 
-// MARK: - Open Documents Tracker (for SwiftUI DocumentGroup)
-class OpenDocumentsTracker: ObservableObject {
-    static let shared = OpenDocumentsTracker()
-    
-    @Published private(set) var openDocuments: Set<URL> = []
-    
-    func documentOpened(_ url: URL?) {
-        guard let url = url else { return }
-        DispatchQueue.main.async {
-            self.openDocuments.insert(url)
-        }
-    }
-    
-    func documentClosed(_ url: URL?) {
-        guard let url = url else { return }
-        DispatchQueue.main.async {
-            self.openDocuments.remove(url)
-        }
-    }
-    
-    func getOpenDocumentPaths() -> [String] {
-        return openDocuments.map { $0.path }
-    }
-}
-
-// MARK: - App Delegate for session management
+// MARK: - App Delegate for session management and auto-updates
+@MainActor
 class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     var settingsManager: SettingsManager?
     
-    override init() {
-        super.init()
-        
-        // Force directory creation immediately
-        _ = DocumentRestoreManager.shared
-        
-        // Register for termination notification
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleWillTerminate),
-            name: NSApplication.willTerminateNotification,
-            object: nil
-        )
-    }
+    // Started manually so XCTest runs (which host the app) never spin up
+    // Sparkle's scheduled checks
+    lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
+    lazy var updaterViewModel = UpdaterViewModel(updater: updaterController.updater)
     
-    // Read setting directly from UserDefaults (same source as SettingsManager)
+    // Read settings directly from UserDefaults (same source as SettingsManager)
     private var reopenDocumentsOnLaunch: Bool {
-        // Default to true if not set
         if UserDefaults.standard.object(forKey: "reopenDocumentsOnLaunch") == nil {
             return true
         }
         return UserDefaults.standard.bool(forKey: "reopenDocumentsOnLaunch")
     }
     
+    private var restoreUnsavedChanges: Bool {
+        if UserDefaults.standard.object(forKey: "restoreUnsavedChanges") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "restoreUnsavedChanges")
+    }
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil,
+           NSClassFromString("XCTestCase") == nil {
+            updaterController.startUpdater()
+        }
+        restoreSession()
+    }
+    
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Snapshot the session while every window is still open
+        DocumentSessionCoordinator.shared.beginTermination()
+        
+        if reopenDocumentsOnLaunch && restoreUnsavedChanges {
+            // Hot exit: unsaved changes are backed up and restored on the next
+            // launch, so quitting never blocks on save dialogs
+            return .terminateNow
+        }
+        
+        // Without restore, fall back to the standard review of unsaved documents
+        NSDocumentController.shared.reviewUnsavedDocuments(
+            withAlertTitle: "Quit Edith",
+            cancellable: true,
+            delegate: self,
+            didReviewAllSelector: #selector(documentController(_:didReviewAll:contextInfo:)),
+            contextInfo: nil)
+        return .terminateLater
+    }
+    
+    @objc private func documentController(_ docController: NSDocumentController,
+                                          didReviewAll: Bool,
+                                          contextInfo: UnsafeMutableRawPointer?) {
+        NSApp.reply(toApplicationShouldTerminate: didReviewAll)
+    }
+    
+    // MARK: Session restore
+    
+    private func restoreSession() {
         guard reopenDocumentsOnLaunch else { return }
         
-        // Restore documents from last session
         let openDocs = DocumentRestoreManager.shared.loadOpenDocuments()
-        
         guard !openDocs.isEmpty else { return }
+        let restoreUnsaved = restoreUnsavedChanges
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            var restoredFiles = 0
+            var untitledCount = 0
+            
             for docInfo in openDocs {
-                let url = URL(fileURLWithPath: docInfo.path)
-                guard FileManager.default.fileExists(atPath: docInfo.path) else { continue }
+                if docInfo.isUntitled {
+                    guard restoreUnsaved,
+                          let content = DocumentRestoreManager.shared.loadUnsavedContent(restoreID: docInfo.restoreID),
+                          !content.isEmpty else { continue }
+                    PendingSessionRestore.shared.untitledContents.append(content)
+                    untitledCount += 1
+                    continue
+                }
                 
-                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { document, wasAlreadyOpen, error in
+                guard let url = Self.resolveSessionURL(for: docInfo) else { continue }
+                if restoreUnsaved, docInfo.hasUnsavedChanges,
+                   let content = DocumentRestoreManager.shared.loadUnsavedContent(restoreID: docInfo.restoreID) {
+                    PendingSessionRestore.shared.contentByPath[url.path] = content
+                }
+                restoredFiles += 1
+                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
                     if let error = error {
-                        print("Failed to reopen \(docInfo.path): \(error)")
+                        print("Failed to reopen \(url.path): \(error)")
+                    }
+                }
+            }
+            
+            if untitledCount > 0 {
+                // Let the launch-created empty window claim the first untitled
+                // document, then create windows for the rest
+                NotificationCenter.default.post(name: .claimUntitledRestore, object: nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    for _ in 0..<PendingSessionRestore.shared.untitledContents.count {
+                        NSDocumentController.shared.newDocument(nil)
+                    }
+                }
+            } else if restoredFiles > 0 {
+                // Nothing needs the launch-created empty window; close it
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    for document in NSDocumentController.shared.documents
+                    where document.fileURL == nil && !document.isDocumentEdited {
+                        document.close()
                     }
                 }
             }
         }
     }
     
-    @objc func handleWillTerminate(_ notification: Notification) {
-        saveOpenDocumentsState()
-    }
-    
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Save open documents BEFORE the app starts closing windows
-        saveOpenDocumentsState()
-        return .terminateNow
-    }
-    
-    func applicationWillTerminate(_ notification: Notification) {
-        // Backup: also try to save here in case applicationShouldTerminate wasn't called
-        saveOpenDocumentsState()
-    }
-    
-    private func saveOpenDocumentsState() {
-        guard reopenDocumentsOnLaunch else {
-            DocumentRestoreManager.shared.clearOpenDocuments()
-            return
+    private static func resolveSessionURL(for docInfo: DocumentRestoreManager.OpenDocumentInfo) -> URL? {
+        if let bookmark = docInfo.bookmark {
+            var isStale = false
+            if let url = try? URL(
+                resolvingBookmarkData: bookmark,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale) {
+                // Access stays open for the document's lifetime
+                _ = url.startAccessingSecurityScopedResource()
+                return url
+            }
         }
-        
-        // Use the tracker instead of NSDocumentController (SwiftUI DocumentGroup doesn't use NSDocumentController)
-        let paths = OpenDocumentsTracker.shared.getOpenDocumentPaths()
-        
-        var openDocs: [DocumentRestoreManager.OpenDocumentInfo] = []
-        
-        for path in paths {
-            let restoreID = URL(fileURLWithPath: path).lastPathComponent.replacingOccurrences(of: ".", with: "_")
-            let info = DocumentRestoreManager.OpenDocumentInfo(
-                path: path,
-                hasUnsavedChanges: false,
-                restoreID: restoreID
-            )
-            openDocs.append(info)
-        }
-        
-        DocumentRestoreManager.shared.saveOpenDocuments(openDocs)
+        // Legacy session entries (pre-bookmark) recorded only the path
+        guard FileManager.default.fileExists(atPath: docInfo.path) else { return nil }
+        return URL(fileURLWithPath: docInfo.path)
     }
 }
 
@@ -270,13 +293,16 @@ struct EdithApp: App {
                 }
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(viewModel: appDelegate.updaterViewModel)
+            }
             FileCommands()
             ZoomCommands(settingsManager: settingsManager)
             SearchCommands()
         }
         
         Settings {
-            SettingsView()
+            SettingsView(updaterViewModel: appDelegate.updaterViewModel)
                 .environmentObject(settingsManager)
         }
         

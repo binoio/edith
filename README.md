@@ -13,7 +13,8 @@ A native macOS text editor built with Swift and SwiftUI.
 - **Line number gutter** with click-to-select lines (click, drag, Cmd+click for non-contiguous)
 - **Syntax highlighting** for 50+ languages via HighlightSwift
 - **Find & Replace** with regex/PCRE support, document selector, and Extract All
-- **Session restore** - reopens documents and unsaved changes on launch
+- **Session restore** - quit and pick up where you left off: open documents (including untitled ones) and unsaved changes come back on the next launch, with no save dialogs blocking quit
+- **Automatic updates** via Sparkle (Settings > Updates)
 - **File change detection** with reload/ignore banner
 
 ### View Options
@@ -47,33 +48,34 @@ Visual indicator: green glow border when in normal/command mode.
 
 ```bash
 # Build debug version
-./scripts/build.sh
+Scripts/build.sh
 
-# Build release version
-./scripts/build.sh Release
+# Build release version (unsigned)
+Scripts/build.sh --release
 
 # Build and run
-./scripts/run.sh
+Scripts/run.sh
 
-# Run tests
-./scripts/test.sh
+# Run unit tests (add --ui for the UI test suite)
+Scripts/test.sh
 ```
 
 ## Installation
 
 ### From Source
 ```bash
-git clone https://github.com/mabino/edith.git
+git clone https://github.com/binoio/edith.git
 cd edith
-./scripts/build.sh Release
-# App is at build/Release/Edith.app
+Scripts/build.sh --release
+# App is at build/DerivedData/Build/Products/Release/Edith.app
 ```
 
-### Notarization (for distribution)
+### Releasing (signing, notarization, Sparkle appcast)
 ```bash
-./scripts/notarize.sh
+Scripts/release.sh
 ```
-Requires Apple Developer account. See script prompts for Apple ID, Team ID, and app-specific password.
+Builds, codesigns, notarizes, publishes the GitHub release, and updates the
+Sparkle appcast. Requires an Apple Developer account; see [RELEASE.md](RELEASE.md).
 
 ## Keyboard Shortcuts
 

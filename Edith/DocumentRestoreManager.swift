@@ -30,6 +30,32 @@ class DocumentRestoreManager {
         let path: String
         let hasUnsavedChanges: Bool
         let restoreID: String
+        /// Security-scoped bookmark so the sandboxed app can reopen the file
+        /// on the next launch without a new open panel.
+        let bookmark: Data?
+        /// Untitled documents have no path; their content lives in a backup
+        /// keyed by restoreID.
+        let isUntitled: Bool
+        
+        init(path: String, hasUnsavedChanges: Bool, restoreID: String,
+             bookmark: Data? = nil, isUntitled: Bool = false) {
+            self.path = path
+            self.hasUnsavedChanges = hasUnsavedChanges
+            self.restoreID = restoreID
+            self.bookmark = bookmark
+            self.isUntitled = isUntitled
+        }
+        
+        init(from decoder: Decoder) throws {
+            // Sessions written before bookmarks/untitled support lack the
+            // newer keys; default them so old sessions still restore.
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            path = try container.decode(String.self, forKey: .path)
+            hasUnsavedChanges = try container.decode(Bool.self, forKey: .hasUnsavedChanges)
+            restoreID = try container.decode(String.self, forKey: .restoreID)
+            bookmark = try container.decodeIfPresent(Data.self, forKey: .bookmark)
+            isUntitled = try container.decodeIfPresent(Bool.self, forKey: .isUntitled) ?? false
+        }
     }
     
     func saveOpenDocuments(_ documents: [OpenDocumentInfo]) {
@@ -163,4 +189,131 @@ class FileChangeMonitor {
             onFileChanged?(path)
         }
     }
+}
+
+// MARK: - Live Session Tracking
+
+/// A live document window's contribution to the saved session. ContentView
+/// fills in the closures; the coordinator pulls current state through them
+/// whenever it snapshots the session.
+final class DocumentSessionHandle {
+    let id = UUID()
+    var resolveDocument: () -> NSDocument? = { nil }
+    var currentText: () -> String = { "" }
+    
+    var restoreID: String { id.uuidString }
+}
+
+/// Continuously snapshots the set of open documents — with security-scoped
+/// bookmarks and unsaved-content backups — so quitting the app (or crashing)
+/// can be resumed exactly where the user left off.
+final class DocumentSessionCoordinator {
+    static let shared = DocumentSessionCoordinator()
+    
+    private var handles: [DocumentSessionHandle] = []
+    private var persistTimer: Timer?
+    private var isTerminating = false
+    /// Tests persist explicitly; the debounced automatic persistence of the
+    /// hosting app would otherwise race them for the session file.
+    var automaticPersistenceSuspended = false
+    
+    private var reopenDocumentsOnLaunch: Bool {
+        UserDefaults.standard.object(forKey: "reopenDocumentsOnLaunch") == nil
+            ? true : UserDefaults.standard.bool(forKey: "reopenDocumentsOnLaunch")
+    }
+    
+    private var restoreUnsavedChanges: Bool {
+        UserDefaults.standard.object(forKey: "restoreUnsavedChanges") == nil
+            ? true : UserDefaults.standard.bool(forKey: "restoreUnsavedChanges")
+    }
+    
+    func register(_ handle: DocumentSessionHandle) {
+        guard !handles.contains(where: { $0 === handle }) else { return }
+        handles.append(handle)
+        schedulePersist()
+    }
+    
+    func unregister(_ handle: DocumentSessionHandle) {
+        handles.removeAll { $0 === handle }
+        schedulePersist()
+    }
+    
+    func noteChange() {
+        schedulePersist()
+    }
+    
+    /// Snapshot the session while every window is still open, then stop
+    /// persisting: the window teardown that follows must not overwrite the
+    /// snapshot with a shrinking session.
+    func beginTermination() {
+        persistNow()
+        isTerminating = true
+        persistTimer?.invalidate()
+    }
+    
+    private func schedulePersist() {
+        guard !isTerminating, !automaticPersistenceSuspended else { return }
+        persistTimer?.invalidate()
+        persistTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            self?.persistNow()
+        }
+    }
+    
+    func persistNow() {
+        guard !isTerminating else { return }
+        let manager = DocumentRestoreManager.shared
+        guard reopenDocumentsOnLaunch else {
+            manager.clearOpenDocuments()
+            manager.clearAllBackups()
+            return
+        }
+        
+        var infos: [DocumentRestoreManager.OpenDocumentInfo] = []
+        var backups: [String: String] = [:]
+        
+        for handle in handles {
+            let document = handle.resolveDocument()
+            let text = handle.currentText()
+            if let url = document?.fileURL {
+                let isDirty = document?.isDocumentEdited ?? false
+                let bookmark = try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil)
+                infos.append(.init(
+                    path: url.path,
+                    hasUnsavedChanges: isDirty,
+                    restoreID: handle.restoreID,
+                    bookmark: bookmark))
+                if isDirty && restoreUnsavedChanges {
+                    backups[handle.restoreID] = text
+                }
+            } else {
+                // Untitled: only worth restoring if it has content
+                guard restoreUnsavedChanges, !text.isEmpty else { continue }
+                infos.append(.init(
+                    path: "",
+                    hasUnsavedChanges: true,
+                    restoreID: handle.restoreID,
+                    isUntitled: true))
+                backups[handle.restoreID] = text
+            }
+        }
+        
+        manager.saveOpenDocuments(infos)
+        manager.clearAllBackups()
+        for (restoreID, content) in backups {
+            manager.saveUnsavedContent(content, restoreID: restoreID)
+        }
+    }
+}
+
+/// Content stashed during launch for restored windows to claim as they appear.
+final class PendingSessionRestore {
+    static let shared = PendingSessionRestore()
+    /// Unsaved changes for reopened files, keyed by file path.
+    var contentByPath: [String: String] = [:]
+    /// Contents of restored untitled documents, claimed in order.
+    var untitledContents: [String] = []
+    private init() {}
 }

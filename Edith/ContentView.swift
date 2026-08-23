@@ -66,6 +66,7 @@ struct ContentView: View {
     @StateObject private var vimModeState = VimModeState()
     
     @State private var showFileChangedBanner = false
+    @State private var sessionHandle = DocumentSessionHandle()
     @State private var cursorPosition = CursorPosition()
     @State private var selectedText: String = ""
     
@@ -132,12 +133,18 @@ struct ContentView: View {
         }
         .onAppear {
             startWatchingFile()
-            registerWithTracker()
+            registerWithSessionCoordinator()
             
             // Register with a delay to ensure window is set up
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 let docName = getDocumentNameForThisView()
                 FindReplaceManager.shared.registerActiveState(findReplaceState, documentName: docName)
+            }
+            
+            // Claim restored session content once the window (and file URL,
+            // if any) is attached
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                claimPendingRestoreContent()
             }
             
             // Check for pending extracted content (from Extract All)
@@ -151,9 +158,15 @@ struct ContentView: View {
         }
         .onDisappear {
             fileWatcher.stopWatching()
-            unregisterFromTracker()
+            DocumentSessionCoordinator.shared.unregister(sessionHandle)
             // Unregister when document closes
             FindReplaceManager.shared.unregisterState(findReplaceState)
+        }
+        .onChange(of: document.text) { _ in
+            DocumentSessionCoordinator.shared.noteChange()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .claimUntitledRestore)) { _ in
+            claimUntitledRestoreContent()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
             // When THIS document's window becomes key, update as active and refresh name
@@ -178,23 +191,42 @@ struct ContentView: View {
         return "Untitled"
     }
     
-    private func getDocumentFileURL() -> URL? {
-        if let windowController = NSApp.keyWindow?.windowController,
-           let document = windowController.document as? NSDocument {
-            return document.fileURL
-        }
-        return nil
+    private func getNSDocumentForThisView() -> NSDocument? {
+        // Get the document from the window containing our text view (never
+        // the key window, which may belong to another document)
+        guard let textView = findReplaceState.textView,
+              let windowController = textView.window?.windowController else { return nil }
+        return windowController.document as? NSDocument
     }
     
-    private func registerWithTracker() {
-        // Delay to ensure window is fully set up
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            OpenDocumentsTracker.shared.documentOpened(getDocumentFileURL())
+    private func registerWithSessionCoordinator() {
+        // The coordinator pulls live state through these closures whenever it
+        // snapshots the session (including at quit, for hot exit)
+        sessionHandle.resolveDocument = { [weak findReplaceState] in
+            guard let textView = findReplaceState?.textView,
+                  let windowController = textView.window?.windowController else { return nil }
+            return windowController.document as? NSDocument
+        }
+        sessionHandle.currentText = { document.text }
+        DocumentSessionCoordinator.shared.register(sessionHandle)
+    }
+    
+    private func claimPendingRestoreContent() {
+        if let url = getNSDocumentForThisView()?.fileURL {
+            // Reopened file: apply the unsaved changes from the last session
+            if let content = PendingSessionRestore.shared.contentByPath.removeValue(forKey: url.path) {
+                document.text = content
+            }
+        } else {
+            claimUntitledRestoreContent()
         }
     }
     
-    private func unregisterFromTracker() {
-        OpenDocumentsTracker.shared.documentClosed(getDocumentFileURL())
+    private func claimUntitledRestoreContent() {
+        guard getNSDocumentForThisView()?.fileURL == nil,
+              document.text.isEmpty,
+              !PendingSessionRestore.shared.untitledContents.isEmpty else { return }
+        document.text = PendingSessionRestore.shared.untitledContents.removeFirst()
     }
     
     private func startWatchingFile() {

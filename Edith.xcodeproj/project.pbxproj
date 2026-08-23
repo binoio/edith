@@ -25,6 +25,8 @@
 		FRB10001 /* FindReplaceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FRM10001 /* FindReplaceManager.swift */; };
 		11EC127108096AEEBBD68E92 /* FindReplaceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D948C8E9C04CD3E50F0F6C0D /* FindReplaceWindow.swift */; };
 		P01 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = P02 /* HighlightSwift */; };
+		P04 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = P05 /* Sparkle */; };
+		014 /* UpdaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114; };
 		T01 /* LineNumberGutterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T10; };
 		T03 /* TextEncodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T12; };
 		T04 /* MenuStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T13; };
@@ -34,6 +36,7 @@
 		T08 /* StatusBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T17; };
 		T09 /* FileWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T18; };
 		T0A /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T19; };
+		T0B /* UpdaterViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A; };
 		B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */; };
 		FMB001 /* FindReplaceManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FMT001 /* FindReplaceManagerTests.swift */; };
 		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
@@ -71,6 +74,7 @@
 		110 /* SyntaxLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxLanguage.swift; sourceTree = "<group>"; };
 		111 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
 		113 /* VimMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VimMode.swift; sourceTree = "<group>"; };
+		114 /* UpdaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModel.swift; sourceTree = "<group>"; };
 		24F507FD22BD2CD5BE0FC427 /* SearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchEngine.swift; sourceTree = "<group>"; };
 		0A3F4108A48CED87CFEC1297 /* FindReplaceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceState.swift; sourceTree = "<group>"; };
 		FRM10001 /* FindReplaceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceManager.swift; sourceTree = "<group>"; };
@@ -89,6 +93,7 @@
 		T17 /* StatusBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarTests.swift; sourceTree = "<group>"; };
 		T18 /* FileWatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcherTests.swift; sourceTree = "<group>"; };
 		T19 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
+		T1A /* UpdaterViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModelTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchEngineTests.swift; sourceTree = "<group>"; };
 		FMT001 /* FindReplaceManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceManagerTests.swift; sourceTree = "<group>"; };
 		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
@@ -103,6 +108,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				P01 /* HighlightSwift in Frameworks */,
+				P04 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -134,6 +140,7 @@
 				110 /* SyntaxLanguage.swift */,
 				111 /* SyntaxHighlighter.swift */,
 				113 /* VimMode.swift */,
+				114 /* UpdaterViewModel.swift */,
 				D948C8E9C04CD3E50F0F6C0D /* FindReplaceWindow.swift */,
 				0A3F4108A48CED87CFEC1297 /* FindReplaceState.swift */,
 				FRM10001 /* FindReplaceManager.swift */,
@@ -167,6 +174,7 @@
 				T17 /* StatusBarTests.swift */,
 				T18 /* FileWatcherTests.swift */,
 				T19 /* SyntaxHighlighterTests.swift */,
+				T1A /* UpdaterViewModelTests.swift */,
 				A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */,
 				FMT001 /* FindReplaceManagerTests.swift */,
 			);
@@ -201,6 +209,7 @@
 			name = Edith;
 			packageProductDependencies = (
 				P02 /* HighlightSwift */,
+				P05 /* Sparkle */,
 			);
 			productName = Edith;
 			productReference = 301 /* Edith.app */;
@@ -266,6 +275,7 @@
 			mainGroup = 600;
 			packageReferences = (
 				P03 /* XCRemoteSwiftPackageReference "HighlightSwift" */,
+				P06 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = 602 /* Products */;
 			projectDirPath = "";
@@ -306,6 +316,7 @@
 				011 /* SyntaxLanguage.swift in Sources */,
 				012 /* SyntaxHighlighter.swift in Sources */,
 				013 /* VimMode.swift in Sources */,
+				014 /* UpdaterViewModel.swift in Sources */,
 				11EC127108096AEEBBD68E92 /* FindReplaceWindow.swift in Sources */,
 				096AB0675ABCC9CC23143B31 /* FindReplaceState.swift in Sources */,
 				FRB10001 /* FindReplaceManager.swift in Sources */,
@@ -326,6 +337,7 @@
 				T08 /* StatusBarTests.swift in Sources */,
 				T09 /* FileWatcherTests.swift in Sources */,
 				T0A /* SyntaxHighlighterTests.swift in Sources */,
+				T0B /* UpdaterViewModelTests.swift in Sources */,
 				B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */,
 				FMB001 /* FindReplaceManagerTests.swift in Sources */,
 			);
@@ -508,7 +520,7 @@
 				CODE_SIGN_ENTITLEMENTS = Edith/Edith.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2.0;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -520,7 +532,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.texteditor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -537,7 +549,7 @@
 				CODE_SIGN_ENTITLEMENTS = Edith/Edith.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2.0;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -549,7 +561,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.texteditor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -565,7 +577,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -582,7 +594,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -598,7 +610,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -614,7 +626,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -673,6 +685,14 @@
 				minimumVersion = 1.1.0;
 			};
 		};
+		P06 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -680,6 +700,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = P03 /* XCRemoteSwiftPackageReference "HighlightSwift" */;
 			productName = HighlightSwift;
+		};
+		P05 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = P06 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 

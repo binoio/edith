@@ -11,10 +11,20 @@ import XCTest
 final class SessionRestoreTests: XCTestCase {
     
     var restoreManager: DocumentRestoreManager!
+    private var savedReopenSetting: Any?
+    private var savedRestoreUnsavedSetting: Any?
     
     override func setUp() {
         super.setUp()
         restoreManager = DocumentRestoreManager.shared
+        // Keep the hosting app's debounced session persistence from racing
+        // these tests for the session file
+        DocumentSessionCoordinator.shared.automaticPersistenceSuspended = true
+        // The coordinator reads these settings; pin them to the defaults
+        savedReopenSetting = UserDefaults.standard.object(forKey: "reopenDocumentsOnLaunch")
+        savedRestoreUnsavedSetting = UserDefaults.standard.object(forKey: "restoreUnsavedChanges")
+        UserDefaults.standard.set(true, forKey: "reopenDocumentsOnLaunch")
+        UserDefaults.standard.set(true, forKey: "restoreUnsavedChanges")
         // Clear any existing data
         restoreManager.clearOpenDocuments()
         restoreManager.clearAllBackups()
@@ -23,6 +33,17 @@ final class SessionRestoreTests: XCTestCase {
     override func tearDown() {
         restoreManager.clearOpenDocuments()
         restoreManager.clearAllBackups()
+        if let savedReopenSetting {
+            UserDefaults.standard.set(savedReopenSetting, forKey: "reopenDocumentsOnLaunch")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "reopenDocumentsOnLaunch")
+        }
+        if let savedRestoreUnsavedSetting {
+            UserDefaults.standard.set(savedRestoreUnsavedSetting, forKey: "restoreUnsavedChanges")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "restoreUnsavedChanges")
+        }
+        DocumentSessionCoordinator.shared.automaticPersistenceSuspended = false
         super.tearDown()
     }
     
@@ -183,6 +204,115 @@ final class SessionRestoreTests: XCTestCase {
         
         let loadedContent = restoreManager.loadUnsavedContent(restoreID: "doc2")
         XCTAssertEqual(loadedContent, unsavedContent)
+    }
+    
+    // MARK: - Bookmark & Untitled Session Tests
+    
+    func testOpenDocumentInfoRoundTripsBookmarkAndUntitled() {
+        // Given: A session mixing a bookmarked file and an untitled document
+        let bookmarkBytes = Data([0x01, 0x02, 0x03])
+        let docs = [
+            DocumentRestoreManager.OpenDocumentInfo(
+                path: "/Users/test/notes.txt",
+                hasUnsavedChanges: true,
+                restoreID: "notes",
+                bookmark: bookmarkBytes
+            ),
+            DocumentRestoreManager.OpenDocumentInfo(
+                path: "",
+                hasUnsavedChanges: true,
+                restoreID: "untitled-1",
+                isUntitled: true
+            )
+        ]
+        
+        // When: Persisting and reloading
+        restoreManager.saveOpenDocuments(docs)
+        let loaded = restoreManager.loadOpenDocuments()
+        
+        // Then: Bookmark data and the untitled flag survive the round trip
+        XCTAssertEqual(loaded.count, 2)
+        XCTAssertEqual(loaded[0].bookmark, bookmarkBytes)
+        XCTAssertFalse(loaded[0].isUntitled)
+        XCTAssertTrue(loaded[1].isUntitled)
+        XCTAssertNil(loaded[1].bookmark)
+    }
+    
+    func testLegacySessionFileWithoutNewKeysStillLoads() throws {
+        // Given: A session written by a pre-bookmark version of Edith
+        let legacyJSON = """
+        [{"path": "/Users/test/old.txt", "hasUnsavedChanges": false, "restoreID": "old_txt"}]
+        """
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let file = appSupport.appendingPathComponent("Edith/Restore/open_documents.json")
+        try legacyJSON.data(using: .utf8)!.write(to: file)
+        
+        // When: Loading
+        let loaded = restoreManager.loadOpenDocuments()
+        
+        // Then: The entry decodes with defaults for the newer fields
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded[0].path, "/Users/test/old.txt")
+        XCTAssertNil(loaded[0].bookmark)
+        XCTAssertFalse(loaded[0].isUntitled)
+    }
+    
+    // MARK: - Session Coordinator Tests
+    
+    @MainActor
+    func testCoordinatorPersistsUntitledDocumentWithContent() {
+        // Given: A registered untitled document with unsaved content
+        let coordinator = DocumentSessionCoordinator.shared
+        let handle = DocumentSessionHandle()
+        handle.resolveDocument = { nil }
+        handle.currentText = { "draft in progress" }
+        coordinator.register(handle)
+        defer { coordinator.unregister(handle) }
+        
+        // When: Snapshotting the session
+        coordinator.persistNow()
+        
+        // Then: The untitled document and its content are captured
+        let loaded = restoreManager.loadOpenDocuments()
+        let entry = loaded.first { $0.restoreID == handle.restoreID }
+        XCTAssertNotNil(entry, "Untitled document with content should be in the session")
+        XCTAssertTrue(entry!.isUntitled)
+        XCTAssertEqual(restoreManager.loadUnsavedContent(restoreID: handle.restoreID), "draft in progress")
+    }
+    
+    @MainActor
+    func testCoordinatorSkipsEmptyUntitledDocuments() {
+        // Given: A registered untitled document with no content
+        let coordinator = DocumentSessionCoordinator.shared
+        let handle = DocumentSessionHandle()
+        handle.resolveDocument = { nil }
+        handle.currentText = { "" }
+        coordinator.register(handle)
+        defer { coordinator.unregister(handle) }
+        
+        // When: Snapshotting the session
+        coordinator.persistNow()
+        
+        // Then: The empty untitled window is not part of the session
+        let loaded = restoreManager.loadOpenDocuments()
+        XCTAssertNil(loaded.first { $0.restoreID == handle.restoreID })
+    }
+    
+    @MainActor
+    func testPendingSessionRestoreQueues() {
+        // Given: Stashed restore content
+        PendingSessionRestore.shared.contentByPath["/tmp/a.txt"] = "unsaved a"
+        PendingSessionRestore.shared.untitledContents = ["untitled draft"]
+        defer {
+            PendingSessionRestore.shared.contentByPath.removeAll()
+            PendingSessionRestore.shared.untitledContents.removeAll()
+        }
+        
+        // Then: Claims consume the stash exactly once
+        XCTAssertEqual(PendingSessionRestore.shared.contentByPath.removeValue(forKey: "/tmp/a.txt"), "unsaved a")
+        XCTAssertNil(PendingSessionRestore.shared.contentByPath.removeValue(forKey: "/tmp/a.txt"))
+        XCTAssertEqual(PendingSessionRestore.shared.untitledContents.removeFirst(), "untitled draft")
+        XCTAssertTrue(PendingSessionRestore.shared.untitledContents.isEmpty)
     }
     
     // MARK: - UserDefaults Integration Tests
