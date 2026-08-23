@@ -150,31 +150,6 @@ func drawIcon() {
     outlineGold.setStroke()
     outline.stroke()
 
-    // ── Running stitches down the centerline of every bar ────────────────
-    for bar in bars {
-        let horizontal = bar.rect.width >= bar.rect.height
-        let stitch = NSBezierPath()
-        stitch.lineWidth = 16
-        stitch.lineCapStyle = .round
-        stitch.setLineDash([30, 34], count: 2, phase: 14)
-        let midX = bar.rect.midX, midY = bar.rect.midY
-        let insetEnd: CGFloat = 40
-        if horizontal {
-            // Arms start their stitch run just past the spine
-            stitch.move(to: NSPoint(x: bars[0].rect.maxX + 26, y: midY))
-            stitch.line(to: NSPoint(x: bar.rect.maxX - insetEnd, y: midY))
-        } else {
-            stitch.move(to: NSPoint(x: midX, y: bar.rect.minY + insetEnd))
-            stitch.line(to: NSPoint(x: midX, y: bar.rect.maxY - insetEnd))
-        }
-        // Thread shadow first, then the cream thread on top
-        let shadowStitch = stitch.copy() as! NSBezierPath
-        shadowStitch.lineWidth = 19
-        color(0x9C7208, 0.6).setStroke()
-        shadowStitch.stroke()
-        stitchCream.setStroke()
-        stitch.stroke()
-    }
 }
 
 func render(size: Int) -> NSBitmapImageRep {
