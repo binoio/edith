@@ -55,7 +55,10 @@ if [[ -n "$LATEST_TAG" && "$(print -l "$LATEST_TAG" "$TAG" | sort -V | tail -1)"
 fi
 [[ -f "$NOTES_MD" ]] || { echo "error: $NOTES_MD missing" >&2; exit 1; }
 [[ -f "$NOTES_HTML" ]] || { echo "error: $NOTES_HTML missing" >&2; exit 1; }
-security find-identity -v -p codesigning | grep -q "Developer ID Application" || {
+# Capture before testing: with pipefail, `grep -q` exiting early would kill
+# the producer with SIGPIPE and fail the pipeline even on a match
+IDENTITIES=$(security find-identity -v -p codesigning)
+[[ "$IDENTITIES" == *"Developer ID Application"* ]] || {
     echo "error: no Developer ID Application signing identity in keychain" >&2; exit 1
 }
 gh auth status >/dev/null 2>&1 || { echo "error: gh not authenticated" >&2; exit 1; }
@@ -88,7 +91,8 @@ KEYCHAIN_KEY="$("$SPARKLE_BIN/generate_keys" -p)"
 [[ "$PUBLIC_KEY" == "$KEYCHAIN_KEY" ]] || { echo "error: SUPublicEDKey ($PUBLIC_KEY) does not match the EdDSA key in the login Keychain ($KEYCHAIN_KEY)" >&2; exit 1; }
 [[ "$(/usr/libexec/PlistBuddy -c 'Print SUEnableInstallerLauncherService' "$PLIST")" == "true" ]] || { echo "error: SUEnableInstallerLauncherService missing (required for the sandboxed app)" >&2; exit 1; }
 [[ -d "$FRAMEWORK" ]] || { echo "error: Sparkle.framework not embedded" >&2; exit 1; }
-otool -l "$APP/Contents/MacOS/Edith" | grep -q "@executable_path/../Frameworks" || { echo "error: Frameworks rpath missing" >&2; exit 1; }
+LOAD_COMMANDS=$(otool -l "$APP/Contents/MacOS/Edith")
+[[ "$LOAD_COMMANDS" == *"@executable_path/../Frameworks"* ]] || { echo "error: Frameworks rpath missing" >&2; exit 1; }
 
 echo "==> Codesigning (inside-out; never --deep)"
 zsh Scripts/codesign_app.sh "$APP" "$IDENTITY"
