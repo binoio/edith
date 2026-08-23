@@ -3,6 +3,20 @@
     <channel>
         <title>Edith</title>
         <item>
+            <title>1.2.1</title>
+            <pubDate>Sun, 23 Aug 2026 10:39:14 -0400</pubDate>
+            <sparkle:version>1.2.1</sparkle:version>
+            <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 1.2.1</h2>
+<h3>A new stitched icon</h3>
+<ul>
+  <li>Edith debuts a new app icon: an embroidered letter E, satin-stitched in gold thread on lavender fabric with a sewn patch border.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.1/Edith-1.2.1.zip" length="3810245" type="application/octet-stream" sparkle:edSignature="uL1dJrtnZ66+1C4G3KfgXyNossdskAiWiY/ydmnQEJEmzZW8AFVoXZa0IN+6aJ2W1GbLDAx/DANNLSL8F/ixDQ=="/>
+        </item>
+        <item>
             <title>1.2.0</title>
             <pubDate>Sun, 23 Aug 2026 10:21:48 -0400</pubDate>
             <sparkle:version>1.2.0</sparkle:version>
