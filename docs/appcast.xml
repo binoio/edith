@@ -1,0 +1,27 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Edith</title>
+        <item>
+            <title>1.2.0</title>
+            <pubDate>Sun, 23 Aug 2026 10:21:48 -0400</pubDate>
+            <sparkle:version>1.2.0</sparkle:version>
+            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 1.2.0</h2>
+<h3>Automatic updates</h3>
+<ul>
+  <li>Edith now updates itself via Sparkle. Check manually with <b>Edith ▸ Check for Updates…</b>, or manage automatic checks and downloads in <b>Settings ▸ Updates</b>.</li>
+</ul>
+<h3>Quit &amp; Resume</h3>
+<ul>
+  <li>Quitting no longer interrupts you with save dialogs: open documents — including untitled ones and unsaved changes — are backed up and restored exactly as you left them on the next launch. Turn this off in <b>Settings ▸ General</b>.</li>
+  <li>Reopening files across launches now works reliably in the sandbox via security-scoped bookmarks.</li>
+  <li>The session is saved continuously while you work, so documents also come back after a crash.</li>
+  <li>The stray empty window that could appear next to restored documents is gone.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.0/Edith-1.2.0.zip" length="2328045" type="application/octet-stream" sparkle:edSignature="1k+Anjc77W48KeyBi/wfludxo219sm0FUZhQsnsr1PKRvaid2IcrrWzo6BJYQRDNLUvfMBi9VF4nfkmE3PuSDA=="/>
+        </item>
+    </channel>
+</rss>
