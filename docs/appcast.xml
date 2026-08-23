@@ -3,6 +3,20 @@
     <channel>
         <title>Edith</title>
         <item>
+            <title>1.2.2</title>
+            <pubDate>Sun, 23 Aug 2026 10:51:15 -0400</pubDate>
+            <sparkle:version>1.2.2</sparkle:version>
+            <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 1.2.2</h2>
+<h3>Icon refinement</h3>
+<ul>
+  <li>The stitched letter E now reads cleaner: the white running-stitch dashes inside the letter are gone, leaving the gold satin stitching, fabric, and patch border unchanged.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.2/Edith-1.2.2.zip" length="3788052" type="application/octet-stream" sparkle:edSignature="7hZ6Ddwd4SYqldBYHMqg2KreLqDCvlQLaomnDsnULdGTeDY9mAhwIDYR8C9z/MyfceEvsnZ+ertvNIigJ2xuDA=="/>
+        </item>
+        <item>
             <title>1.2.1</title>
             <pubDate>Sun, 23 Aug 2026 10:39:14 -0400</pubDate>
             <sparkle:version>1.2.1</sparkle:version>
