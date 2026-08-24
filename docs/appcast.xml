@@ -3,6 +3,21 @@
     <channel>
         <title>Edith</title>
         <item>
+            <title>1.3.0</title>
+            <pubDate>Sun, 23 Aug 2026 23:03:55 -0400</pubDate>
+            <sparkle:version>1.3.0</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 1.3.0</h2>
+<h3>Line height setting</h3>
+<ul>
+  <li>Editor Defaults gains a Line Height slider (1.0&times; to 2.0&times;). The chosen spacing applies immediately to open documents, carries into new text as you type, and persists across launches.</li>
+  <li>Line numbers in the gutter and invisible-character markers now align to the text baseline, so they stay in step with the text at any line height.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v1.3.0/Edith-1.3.0.zip" length="3796724" type="application/octet-stream" sparkle:edSignature="+KYOvFaNeO6ZbI8ILYO0MwChW0v7ZvTQShpPvq5D2vUvI5wgoMmI3fxyo9KybEUnLqZpS2+8Bgdbbl1r/04MAw=="/>
+        </item>
+        <item>
             <title>1.2.2</title>
             <pubDate>Sun, 23 Aug 2026 10:51:15 -0400</pubDate>
             <sparkle:version>1.2.2</sparkle:version>
@@ -29,27 +44,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.1/Edith-1.2.1.zip" length="3810245" type="application/octet-stream" sparkle:edSignature="uL1dJrtnZ66+1C4G3KfgXyNossdskAiWiY/ydmnQEJEmzZW8AFVoXZa0IN+6aJ2W1GbLDAx/DANNLSL8F/ixDQ=="/>
-        </item>
-        <item>
-            <title>1.2.0</title>
-            <pubDate>Sun, 23 Aug 2026 10:21:48 -0400</pubDate>
-            <sparkle:version>1.2.0</sparkle:version>
-            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Edith 1.2.0</h2>
-<h3>Automatic updates</h3>
-<ul>
-  <li>Edith now updates itself via Sparkle. Check manually with <b>Edith ▸ Check for Updates…</b>, or manage automatic checks and downloads in <b>Settings ▸ Updates</b>.</li>
-</ul>
-<h3>Quit &amp; Resume</h3>
-<ul>
-  <li>Quitting no longer interrupts you with save dialogs: open documents — including untitled ones and unsaved changes — are backed up and restored exactly as you left them on the next launch. Turn this off in <b>Settings ▸ General</b>.</li>
-  <li>Reopening files across launches now works reliably in the sandbox via security-scoped bookmarks.</li>
-  <li>The session is saved continuously while you work, so documents also come back after a crash.</li>
-  <li>The stray empty window that could appear next to restored documents is gone.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.0/Edith-1.2.0.zip" length="2328045" type="application/octet-stream" sparkle:edSignature="1k+Anjc77W48KeyBi/wfludxo219sm0FUZhQsnsr1PKRvaid2IcrrWzo6BJYQRDNLUvfMBi9VF4nfkmE3PuSDA=="/>
         </item>
     </channel>
 </rss>
