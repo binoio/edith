@@ -175,6 +175,142 @@ func writePNG(_ rep: NSBitmapImageRep, to path: String) {
     print("wrote \(path)")
 }
 
+// ── SVG twin of the icon, from the same geometry, for the web ────────────
+
+func fmt(_ v: CGFloat) -> String {
+    let s = String(format: "%.2f", v)
+    return s.hasSuffix(".00") ? String(s.dropLast(3)) : s
+}
+
+func hex(_ c: NSColor) -> String {
+    let rgb = c.usingColorSpace(.sRGB)!
+    return String(format: "#%02X%02X%02X",
+                  Int(round(rgb.redComponent * 255)),
+                  Int(round(rgb.greenComponent * 255)),
+                  Int(round(rgb.blueComponent * 255)))
+}
+
+func svgStroke(_ c: NSColor) -> String {
+    let rgb = c.usingColorSpace(.sRGB)!
+    let base = "stroke=\"\(hex(c))\""
+    return rgb.alphaComponent < 1
+        ? base + String(format: " stroke-opacity=\"%.2f\"", rgb.alphaComponent)
+        : base
+}
+
+func svgPathData(_ path: CGPath) -> String {
+    var d = ""
+    path.applyWithBlock { elem in
+        let p = elem.pointee
+        switch p.type {
+        case .moveToPoint:
+            d += "M\(fmt(p.points[0].x)) \(fmt(p.points[0].y))"
+        case .addLineToPoint:
+            d += "L\(fmt(p.points[0].x)) \(fmt(p.points[0].y))"
+        case .addQuadCurveToPoint:
+            d += "Q\(fmt(p.points[0].x)) \(fmt(p.points[0].y)) \(fmt(p.points[1].x)) \(fmt(p.points[1].y))"
+        case .addCurveToPoint:
+            d += "C\(fmt(p.points[0].x)) \(fmt(p.points[0].y)) \(fmt(p.points[1].x)) \(fmt(p.points[1].y)) \(fmt(p.points[2].x)) \(fmt(p.points[2].y))"
+        case .closeSubpath:
+            d += "Z"
+        @unknown default:
+            break
+        }
+    }
+    return d
+}
+
+func svgIcon() -> String {
+    var union = CGPath(roundedRect: bars[0].rect, cornerWidth: 46, cornerHeight: 46, transform: nil)
+    for bar in bars.dropFirst() {
+        union = union.union(CGPath(roundedRect: bar.rect, cornerWidth: 46, cornerHeight: 46, transform: nil))
+    }
+    let eData = svgPathData(union)
+    let squircleR = canvas * 0.2237
+
+    // Gradient endpoints matching NSGradient's -60° fill of the full canvas
+    let theta = -60.0 * .pi / 180
+    let half = (canvas / 2) * (abs(CGFloat(cos(theta))) + abs(CGFloat(sin(theta))))
+    let (dx, dy) = (CGFloat(cos(theta)) * half, CGFloat(sin(theta)) * half)
+    let (cx, cy) = (canvas / 2, canvas / 2)
+
+    var s = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \(Int(canvas)) \(Int(canvas))">
+    <defs>
+    <linearGradient id="fabric" gradientUnits="userSpaceOnUse" x1="\(fmt(cx - dx))" y1="\(fmt(cy - dy))" x2="\(fmt(cx + dx))" y2="\(fmt(cy + dy))">
+    <stop offset="0" stop-color="\(hex(fabricLight))"/>
+    <stop offset="1" stop-color="\(hex(fabricDark))"/>
+    </linearGradient>
+    <clipPath id="squircle"><rect width="\(Int(canvas))" height="\(Int(canvas))" rx="\(fmt(squircleR))"/></clipPath>
+    <clipPath id="letter"><path d="\(eData)"/></clipPath>
+
+    """
+    for (i, bar) in bars.enumerated() {
+        let r = bar.rect
+        s += "<clipPath id=\"bar\(i)\"><rect x=\"\(fmt(r.minX))\" y=\"\(fmt(r.minY))\" width=\"\(fmt(r.width))\" height=\"\(fmt(r.height))\" rx=\"46\"/></clipPath>\n"
+    }
+    let shadow = color(0x4A4390, 0.35).usingColorSpace(.sRGB)!
+    s += """
+    <filter id="eshadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="-14" stdDeviation="15" flood-color="\(hex(shadow))" flood-opacity="\(String(format: "%.2f", shadow.alphaComponent))"/>
+    </filter>
+    </defs>
+    <g transform="translate(0,\(Int(canvas))) scale(1,-1)">
+    <g clip-path="url(#squircle)">
+    <rect width="\(Int(canvas))" height="\(Int(canvas))" fill="url(#fabric)"/>
+
+    """
+
+    // Woven texture, same alternation as the bitmap renderer
+    for i in stride(from: CGFloat(0), through: canvas, by: 12) {
+        let even = Int(i / 12) % 2 == 0
+        s += "<line x1=\"\(fmt(i))\" y1=\"0\" x2=\"\(fmt(i))\" y2=\"\(Int(canvas))\" \(svgStroke(even ? weaveLight : weaveDark)) stroke-width=\"2.5\"/>\n"
+        s += "<line x1=\"0\" y1=\"\(fmt(i))\" x2=\"\(Int(canvas))\" y2=\"\(fmt(i))\" \(svgStroke(even ? weaveDark : weaveLight)) stroke-width=\"2.5\"/>\n"
+    }
+
+    // Sewn patch border
+    for (inset, width, c) in [(CGFloat(44), CGFloat(14), stitchShadow), (47, 11, stitchCream)] {
+        let side = canvas - 2 * inset
+        s += "<rect x=\"\(fmt(inset))\" y=\"\(fmt(inset))\" width=\"\(fmt(side))\" height=\"\(fmt(side))\" rx=\"\(fmt(side * 0.2237))\" fill=\"none\" \(svgStroke(c)) stroke-width=\"\(fmt(width))\" stroke-dasharray=\"34 26\" stroke-linecap=\"round\"/>\n"
+    }
+
+    // The E: shadow, then per-bar satin stitching, then the outline
+    s += "<path d=\"\(eData)\" fill=\"\(hex(threadGold))\" filter=\"url(#eshadow)\"/>\n"
+    for (i, bar) in bars.enumerated() {
+        let r = bar.rect
+        s += "<g clip-path=\"url(#letter)\"><g clip-path=\"url(#bar\(i))\">\n"
+        s += "<rect x=\"\(fmt(r.minX - 8))\" y=\"\(fmt(r.minY - 8))\" width=\"\(fmt(r.width + 16))\" height=\"\(fmt(r.height + 16))\" fill=\"\(hex(threadGold))\"/>\n"
+        let horizontal = r.width >= r.height
+        let along = horizontal
+            ? stride(from: r.minX - 8, through: r.maxX + 8, by: 10)
+            : stride(from: r.minY - 8, through: r.maxY + 8, by: 10)
+        var index = 0
+        for pos in along {
+            let drift = CGFloat(1.6 * sin(Double(pos) * 0.09))
+            let (x1, y1, x2, y2) = horizontal
+                ? (pos + drift, r.minY - 8, pos - drift, r.maxY + 8)
+                : (r.minX - 8, pos + drift, r.maxX + 8, pos - drift)
+            let c: NSColor
+            switch index % 6 {
+            case 0, 3: c = threadGoldHi
+            case 1, 4: c = threadGold
+            default:   c = threadGoldLo
+            }
+            s += "<line x1=\"\(fmt(x1))\" y1=\"\(fmt(y1))\" x2=\"\(fmt(x2))\" y2=\"\(fmt(y2))\" \(svgStroke(c)) stroke-width=\"8\" stroke-linecap=\"round\"/>\n"
+            index += 1
+        }
+        s += "</g></g>\n"
+    }
+    s += "<path d=\"\(eData)\" fill=\"none\" \(svgStroke(outlineGold)) stroke-width=\"14\"/>\n"
+    s += "</g>\n</g>\n</svg>\n"
+    return s
+}
+
+func writeSVG(to path: String) {
+    try! svgIcon().write(to: URL(fileURLWithPath: path), atomically: true, encoding: .utf8)
+    print("wrote \(path)")
+}
+
 let args = CommandLine.arguments
 if args.count > 1 {
     writePNG(render(size: 1024), to: args[1])
@@ -188,4 +324,5 @@ if args.count > 1 {
     for (name, size) in sizes {
         writePNG(render(size: size), to: "\(iconset)/\(name)")
     }
+    writeSVG(to: "docs/images/icon.svg")
 }
