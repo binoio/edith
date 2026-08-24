@@ -63,7 +63,7 @@ struct HelpView: View {
                         Text("**General** — Session restore, document refresh options")
                         Text("**Text Encodings** — Default encoding for new documents")
                         Text("**Appearance** — Light, dark, or system appearance")
-                        Text("**Editor Defaults** — Font, magnification, tabs, invisibles")
+                        Text("**Editor Defaults** — Font, magnification, line height, tabs, invisibles")
                     }
                     .font(.body)
                 }

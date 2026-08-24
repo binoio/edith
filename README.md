@@ -27,7 +27,7 @@ A native macOS text editor built with Swift and SwiftUI.
 - **General**: Document restore, file monitoring, vim mode toggle
 - **Text Encodings**: Default encoding for new documents (UTF-8 default)
 - **Appearance**: System/Light/Dark mode
-- **Editor Defaults**: Font, size, tab width, invisible characters
+- **Editor Defaults**: Font, size, line height, tab width, invisible characters
 
 ### Experimental: Vim-like Mode
 Enable in Settings > General. Double-tap Esc to toggle.

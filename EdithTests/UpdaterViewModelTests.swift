@@ -27,15 +27,21 @@ final class UpdaterViewModelTests: XCTestCase {
         let originalChecks = updater.automaticallyChecksForUpdates
         let originalDownloads = updater.automaticallyDownloadsUpdates
         defer {
-            updater.automaticallyChecksForUpdates = originalChecks
             updater.automaticallyDownloadsUpdates = originalDownloads
+            updater.automaticallyChecksForUpdates = originalChecks
         }
 
-        viewModel.automaticallyChecksForUpdates = !originalChecks
-        XCTAssertEqual(updater.automaticallyChecksForUpdates, !originalChecks)
+        // Sparkle only honors the downloads preference while automatic checks
+        // are on (allowsAutomaticUpdates follows the checks setting when no
+        // SUAllowsAutomaticUpdates override exists), so enable checks first
+        viewModel.automaticallyChecksForUpdates = true
+        XCTAssertTrue(updater.automaticallyChecksForUpdates)
 
         viewModel.automaticallyDownloadsUpdates = !originalDownloads
         XCTAssertEqual(updater.automaticallyDownloadsUpdates, !originalDownloads)
+
+        viewModel.automaticallyChecksForUpdates = false
+        XCTAssertFalse(updater.automaticallyChecksForUpdates)
     }
 
     func testUpdaterNeverStartsUnderXCTest() {

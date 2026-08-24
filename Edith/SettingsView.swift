@@ -162,6 +162,13 @@ struct EditorDefaultsSettingsView: View {
                         .frame(width: 50)
                 }
                 
+                HStack {
+                    Text("Line Height:")
+                    Slider(value: $settingsManager.lineHeightMultiple, in: 1.0...2.0, step: 0.1)
+                    Text(String(format: "%.1f×", settingsManager.lineHeightMultiple))
+                        .frame(width: 50)
+                }
+
                 Stepper("Spaces per Tab: \(settingsManager.spacesPerTab)", value: $settingsManager.spacesPerTab, in: 1...8)
                 
                 Toggle("Show Invisible Characters", isOn: $settingsManager.showInvisibleCharacters)

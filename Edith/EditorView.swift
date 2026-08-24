@@ -104,6 +104,23 @@ struct EditorView: NSViewRepresentable {
         
         scrollView.showLineNumbers = settingsManager.showLineNumbers
         scrollView.customLayoutManager.showInvisibleCharacters = settingsManager.showInvisibleCharacters
+
+        // Line height applies through a paragraph style, on the default and
+        // typing attributes for new text and across the storage for existing
+        // text; the highlighter only touches font and color, so it survives
+        let lineHeight = CGFloat(settingsManager.lineHeightMultiple)
+        if scrollView.currentLineHeightMultiple != lineHeight {
+            scrollView.currentLineHeightMultiple = lineHeight
+            let style = NSMutableParagraphStyle()
+            style.lineHeightMultiple = lineHeight
+            textView.defaultParagraphStyle = style
+            textView.typingAttributes[.paragraphStyle] = style
+            if let storage = textView.textStorage, storage.length > 0 {
+                storage.addAttribute(.paragraphStyle, value: style,
+                                     range: NSRange(location: 0, length: storage.length))
+            }
+            scrollView.lineNumberView.needsDisplay = true
+        }
     }
     
     private func applyHighlighting(to scrollView: LineNumberScrollView, immediate: Bool) {
@@ -205,7 +222,8 @@ class LineNumberScrollView: NSView {
     let customLayoutManager: InvisibleCharacterLayoutManager
     
     var currentFont: NSFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-    
+    var currentLineHeightMultiple: CGFloat = 1.0
+
     var showLineNumbers: Bool = true {
         didSet {
             lineNumberView.isHidden = !showLineNumbers
@@ -655,8 +673,9 @@ class LineNumberView: NSView {
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer else { return }
         
+        let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular),
+            .font: numberFont,
             .foregroundColor: NSColor.secondaryLabelColor
         ]
         
@@ -726,7 +745,10 @@ class LineNumberView: NSView {
             let sz = s.size(withAttributes: attrs)
             // Right-align within centered column
             let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-            let pt = NSPoint(x: xPos, y: yPos + (lineRect.height - sz.height) / 2)
+            // Align the number's baseline with the text baseline so larger
+            // line heights don't drift the gutter relative to the text
+            let baselineOffset = layoutManager.location(forGlyphAt: glyphIdx).y
+            let pt = NSPoint(x: xPos, y: yPos + baselineOffset - numberFont.ascender)
             s.draw(at: pt, withAttributes: attrs)
             
             lineNum += 1
@@ -811,10 +833,11 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
                 .foregroundColor: self.invisibleColor
             ]
             
-            // Calculate position
+            // Position on the glyph's baseline so taller line heights keep
+            // the marker aligned with the character it stands in for
             let point = NSPoint(
                 x: origin.x + lineRect.origin.x + glyphLocation.x,
-                y: origin.y + lineRect.origin.y
+                y: origin.y + lineRect.origin.y + glyphLocation.y - font.ascender
             )
             
             // Draw the invisible character

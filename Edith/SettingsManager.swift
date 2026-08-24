@@ -127,6 +127,7 @@ class SettingsManager: ObservableObject {
     @AppStorage("fontName") var fontName: String = "Menlo"
     @AppStorage("fontSize") var fontSize: Double = 13.0
     @AppStorage("magnification") var magnification: Double = 1.0
+    @AppStorage("lineHeightMultiple") var lineHeightMultiple: Double = 1.0
     @AppStorage("spacesPerTab") var spacesPerTab: Int = 4
     @AppStorage("showInvisibleCharacters") var showInvisibleCharacters: Bool = false
     @AppStorage("showLineNumbers") var showLineNumbers: Bool = true
@@ -142,6 +143,7 @@ class SettingsManager: ObservableObject {
     static let defaultFontName = "Menlo"
     static let defaultFontSize: Double = 13.0
     static let defaultMagnification: Double = 1.0
+    static let defaultLineHeightMultiple: Double = 1.0
     static let defaultSpacesPerTab: Int = 4
     static let defaultShowInvisibleCharacters = false
     static let defaultShowLineNumbers = true
@@ -177,6 +179,7 @@ class SettingsManager: ObservableObject {
         fontName = Self.defaultFontName
         fontSize = Self.defaultFontSize
         magnification = Self.defaultMagnification
+        lineHeightMultiple = Self.defaultLineHeightMultiple
         spacesPerTab = Self.defaultSpacesPerTab
         showInvisibleCharacters = Self.defaultShowInvisibleCharacters
         showLineNumbers = Self.defaultShowLineNumbers

@@ -127,6 +127,52 @@ final class SettingsPersistenceTests: XCTestCase {
             "Large font size should persist")
     }
     
+    // MARK: - Line Height Persistence Tests
+
+    func testLineHeightDefaultsToSingleSpacing() {
+        let settings = SettingsManager()
+        settings.restoreDefaults()
+
+        XCTAssertEqual(settings.lineHeightMultiple, 1.0,
+            "Line height should default to 1.0 (single spacing)")
+    }
+
+    func testLineHeightPersistsThroughSimulatedRelaunch() {
+        let settings1 = SettingsManager()
+        settings1.restoreDefaults()
+        settings1.lineHeightMultiple = 1.5
+
+        let settings2 = SettingsManager()
+
+        XCTAssertEqual(settings2.lineHeightMultiple, 1.5,
+            "Line height should persist through app relaunch")
+    }
+
+    func testLineHeightPersistsAfterChangingOtherSettings() {
+        let settings = SettingsManager()
+        settings.restoreDefaults()
+
+        settings.lineHeightMultiple = 1.2
+        settings.fontSize = 18.0
+        settings.magnification = 1.5
+
+        let settings2 = SettingsManager()
+
+        XCTAssertEqual(settings2.lineHeightMultiple, 1.2, accuracy: 0.001,
+            "Line height should persist even after other settings changed")
+    }
+
+    func testLineHeightResetsWithRestoreDefaults() {
+        let settings1 = SettingsManager()
+        settings1.lineHeightMultiple = 2.0
+
+        settings1.restoreDefaults()
+
+        let settings2 = SettingsManager()
+        XCTAssertEqual(settings2.lineHeightMultiple, SettingsManager.defaultLineHeightMultiple,
+            "Line height should reset to default with Restore Defaults")
+    }
+
     // MARK: - Combined Persistence Tests
     
     func testBothMagnificationAndFontSizePersist() {

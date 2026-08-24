@@ -173,11 +173,59 @@ final class SyntaxHighlighterTests: XCTestCase {
     }
     
     // MARK: - Codable Tests
-    
+
     func testSyntaxLanguageIsCodable() throws {
         let original = SyntaxLanguage.python
         let encoded = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(SyntaxLanguage.self, from: encoded)
         XCTAssertEqual(original, decoded)
+    }
+
+    // MARK: - Attribute Preservation
+
+    /// The editor's line-height setting rides on a paragraph-style attribute;
+    /// highlighting must only touch font and color, never strip it.
+    @MainActor
+    func testHighlightingPreservesParagraphStyle() async {
+        let text = "x = 1\ny = 2\n"
+        let storage = NSTextStorage(string: text)
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = 1.5
+        storage.addAttribute(.paragraphStyle, value: style,
+                             range: NSRange(location: 0, length: storage.length))
+
+        let highlighter = SyntaxHighlighter()
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        await highlighter.highlightImmediately(text, language: .python,
+                                               textStorage: storage, baseFont: font)
+
+        var runs = 0
+        storage.enumerateAttribute(.paragraphStyle,
+                                   in: NSRange(location: 0, length: storage.length)) { value, _, _ in
+            let applied = value as? NSParagraphStyle
+            XCTAssertEqual(applied?.lineHeightMultiple, 1.5,
+                "Highlighting stripped the paragraph style carrying line height")
+            runs += 1
+        }
+        XCTAssertGreaterThan(runs, 0)
+    }
+
+    @MainActor
+    func testClearHighlightingPreservesParagraphStyle() async {
+        let text = "plain text\nsecond line\n"
+        let storage = NSTextStorage(string: text)
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = 1.3
+        storage.addAttribute(.paragraphStyle, value: style,
+                             range: NSRange(location: 0, length: storage.length))
+
+        let highlighter = SyntaxHighlighter()
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        await highlighter.highlightImmediately(text, language: .plain,
+                                               textStorage: storage, baseFont: font)
+
+        let applied = storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertEqual(applied?.lineHeightMultiple, 1.3,
+            "Clearing highlighting stripped the paragraph style carrying line height")
     }
 }
