@@ -330,6 +330,46 @@ class LineNumberScrollView: NSView {
 // MARK: - Vim-aware Text View
 class VimTextView: NSTextView {
     weak var vimModeState: VimModeState?
+    private var windowKeyObserver: NSObjectProtocol?
+    
+    override var acceptsFirstResponder: Bool { true }
+    override var canBecomeKeyView: Bool { true }
+    
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let observer = windowKeyObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowKeyObserver = nil
+        }
+        
+        guard let window = window else { return }
+        
+        windowKeyObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self, let window = self.window else { return }
+            if window.firstResponder != self {
+                window.makeFirstResponder(self)
+            }
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let window = self.window else { return }
+            window.makeKeyAndOrderFront(nil)
+            window.makeFirstResponder(self)
+            if self.selectedRange().location == NSNotFound {
+                self.setSelectedRange(NSRange(location: 0, length: 0))
+            }
+        }
+    }
+    
+    deinit {
+        if let observer = windowKeyObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
     
     override func keyDown(with event: NSEvent) {
         guard let vimState = vimModeState else {
