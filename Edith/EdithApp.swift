@@ -40,12 +40,32 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         return UserDefaults.standard.bool(forKey: "restoreUnsavedChanges")
     }
     
+    private var openNewDocumentOnLaunch: Bool {
+        if UserDefaults.standard.object(forKey: "openNewDocumentOnLaunch") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "openNewDocumentOnLaunch")
+    }
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         if Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil,
            NSClassFromString("XCTestCase") == nil {
             updaterController.startUpdater()
         }
+        NSApp.activate(ignoringOtherApps: true)
         restoreSession()
+    }
+    
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        return openNewDocumentOnLaunch
+    }
+    
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag && openNewDocumentOnLaunch {
+            NSDocumentController.shared.newDocument(nil)
+            return false
+        }
+        return true
     }
     
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -77,10 +97,29 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     // MARK: Session restore
     
     private func restoreSession() {
-        guard reopenDocumentsOnLaunch else { return }
+        let openDocs = reopenDocumentsOnLaunch ? DocumentRestoreManager.shared.loadOpenDocuments() : []
         
-        let openDocs = DocumentRestoreManager.shared.loadOpenDocuments()
-        guard !openDocs.isEmpty else { return }
+        if openDocs.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if self.openNewDocumentOnLaunch {
+                    if NSDocumentController.shared.documents.isEmpty {
+                        NSDocumentController.shared.newDocument(nil)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        NSApp.activate(ignoringOtherApps: true)
+                        if let keyWindow = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.isVisible && $0.canBecomeKey }) {
+                            keyWindow.makeKeyAndOrderFront(nil)
+                        }
+                    }
+                } else {
+                    for document in NSDocumentController.shared.documents
+                    where document.fileURL == nil && !document.isDocumentEdited {
+                        document.close()
+                    }
+                }
+            }
+            return
+        }
         let restoreUnsaved = restoreUnsavedChanges
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

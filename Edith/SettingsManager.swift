@@ -110,6 +110,7 @@ class SettingsManager: ObservableObject {
     // General
     @AppStorage("reopenDocumentsOnLaunch") var reopenDocumentsOnLaunch: Bool = true
     @AppStorage("restoreUnsavedChanges") var restoreUnsavedChanges: Bool = true
+    @AppStorage("openNewDocumentOnLaunch") var openNewDocumentOnLaunch: Bool = true
     @AppStorage("refreshDocumentsChangedOnDisk") var refreshDocumentsChangedOnDisk: Bool = true
     @AppStorage("enableVimMode") var enableVimMode: Bool = false
     
@@ -139,6 +140,7 @@ class SettingsManager: ObservableObject {
     // Default values for restoration
     static let defaultReopenDocumentsOnLaunch = true
     static let defaultRestoreUnsavedChanges = true
+    static let defaultOpenNewDocumentOnLaunch = true
     static let defaultRefreshDocumentsChangedOnDisk = true
     static let defaultFontName = "Menlo"
     static let defaultFontSize: Double = 13.0
@@ -175,6 +177,7 @@ class SettingsManager: ObservableObject {
     func restoreDefaults() {
         reopenDocumentsOnLaunch = Self.defaultReopenDocumentsOnLaunch
         restoreUnsavedChanges = Self.defaultRestoreUnsavedChanges
+        openNewDocumentOnLaunch = Self.defaultOpenNewDocumentOnLaunch
         refreshDocumentsChangedOnDisk = Self.defaultRefreshDocumentsChangedOnDisk
         fontName = Self.defaultFontName
         fontSize = Self.defaultFontSize

@@ -257,4 +257,26 @@ final class SettingsPersistenceTests: XCTestCase {
         XCTAssertEqual(settings3.fontSize, 20.0,
             "Font size from second session should persist")
     }
+    
+    // MARK: - Open New Document On Launch Persistence Tests
+    
+    func testOpenNewDocumentOnLaunchPersistsThroughSimulatedRelaunch() {
+        let settings1 = SettingsManager()
+        settings1.restoreDefaults()
+        settings1.openNewDocumentOnLaunch = false
+        
+        let settings2 = SettingsManager()
+        XCTAssertFalse(settings2.openNewDocumentOnLaunch,
+            "openNewDocumentOnLaunch should persist through app relaunch")
+    }
+    
+    func testOpenNewDocumentOnLaunchRestoresToDefault() {
+        let settings1 = SettingsManager()
+        settings1.openNewDocumentOnLaunch = false
+        settings1.restoreDefaults()
+        
+        let settings2 = SettingsManager()
+        XCTAssertEqual(settings2.openNewDocumentOnLaunch, SettingsManager.defaultOpenNewDocumentOnLaunch,
+            "openNewDocumentOnLaunch should reset to default after restoreDefaults")
+    }
 }

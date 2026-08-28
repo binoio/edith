@@ -162,6 +162,11 @@ final class SessionRestoreTests: XCTestCase {
         XCTAssertTrue(settings.refreshDocumentsChangedOnDisk, "Refresh documents should default to true")
     }
     
+    func testOpenNewDocumentOnLaunchSettingDefaultsToTrue() {
+        let settings = SettingsManager()
+        XCTAssertTrue(settings.openNewDocumentOnLaunch, "Open new document on launch should default to true")
+    }
+    
     // MARK: - Round-trip Integration Test
     
     func testFullRoundTripPersistence() {

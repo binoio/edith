@@ -57,6 +57,8 @@ struct GeneralSettingsView: View {
                     .foregroundColor(settingsManager.reopenDocumentsOnLaunch ? .primary : .secondary)
                     .padding(.leading, 20)
                 
+                Toggle("Open a new document on first launch", isOn: $settingsManager.openNewDocumentOnLaunch)
+                
                 Divider()
                     .padding(.vertical, 8)
                 
