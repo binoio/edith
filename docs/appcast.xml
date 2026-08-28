@@ -3,6 +3,21 @@
     <channel>
         <title>Edith</title>
         <item>
+            <title>1.4.1</title>
+            <pubDate>Thu, 27 Aug 2026 23:24:02 -0400</pubDate>
+            <sparkle:version>1.4.1</sparkle:version>
+            <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 1.4.1</h2>
+<h3>Vertically centered line numbers</h3>
+<ul>
+  <li>Fixed line number alignment in the gutter to always remain vertically centered in relation to the corresponding editor line across all line heights and spacing settings.</li>
+  <li>Eliminated vertical line number shifting during typing, line insertion, and line deletion.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v1.4.1/Edith-1.4.1.zip" length="3811172" type="application/octet-stream" sparkle:edSignature="GdtmjLSxgNgXPYGSh/Hp+hjQ/GT6r9/plUF0iO/hqkxgFJbXwoISQ97ZSd6kQfNuf4JplaMmQGr6bNXwn470BQ=="/>
+        </item>
+        <item>
             <title>1.4.0</title>
             <pubDate>Thu, 27 Aug 2026 22:49:20 -0400</pubDate>
             <sparkle:version>1.4.0</sparkle:version>
@@ -32,20 +47,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/binoio/edith/releases/download/v1.3.0/Edith-1.3.0.zip" length="3796724" type="application/octet-stream" sparkle:edSignature="+KYOvFaNeO6ZbI8ILYO0MwChW0v7ZvTQShpPvq5D2vUvI5wgoMmI3fxyo9KybEUnLqZpS2+8Bgdbbl1r/04MAw=="/>
-        </item>
-        <item>
-            <title>1.2.2</title>
-            <pubDate>Sun, 23 Aug 2026 10:51:15 -0400</pubDate>
-            <sparkle:version>1.2.2</sparkle:version>
-            <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Edith 1.2.2</h2>
-<h3>Icon refinement</h3>
-<ul>
-  <li>The stitched letter E now reads cleaner: the white running-stitch dashes inside the letter are gone, leaving the gold satin stitching, fabric, and patch border unchanged.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/binoio/edith/releases/download/v1.2.2/Edith-1.2.2.zip" length="3788052" type="application/octet-stream" sparkle:edSignature="7hZ6Ddwd4SYqldBYHMqg2KreLqDCvlQLaomnDsnULdGTeDY9mAhwIDYR8C9z/MyfceEvsnZ+ertvNIigJ2xuDA=="/>
         </item>
     </channel>
 </rss>
