@@ -567,10 +567,10 @@ class LineNumberView: NSView {
         if content.length > 0 {
             let lastChar = content.character(at: content.length - 1)
             if lastChar == 0x0A || lastChar == 0x0D {
-                let lastGlyphIdx = layoutManager.glyphIndexForCharacter(at: content.length - 1)
-                let lastLineRect = layoutManager.lineFragmentRect(forGlyphAt: lastGlyphIdx, effectiveRange: nil)
-                let trailingTop = lastLineRect.origin.y + lastLineRect.height
-                if textViewY >= trailingTop {
+                let trailingLineRect = layoutManager.extraLineFragmentRect
+                let trailingTop = trailingLineRect.origin.y
+                let trailingBottom = trailingLineRect.origin.y + trailingLineRect.height
+                if textViewY >= trailingTop && textViewY < trailingBottom {
                     return lineNum
                 }
             }
@@ -735,7 +735,12 @@ class LineNumberView: NSView {
             let sz = s.size(withAttributes: attrs)
             // Right-align within centered column
             let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-            s.draw(at: NSPoint(x: xPos, y: inset.height), withAttributes: attrs)
+            let emptyLineRect = layoutManager.extraLineFragmentRect.height > 0
+                ? layoutManager.extraLineFragmentRect
+                : NSRect(x: 0, y: 0, width: bounds.width, height: layoutManager.defaultLineHeight(for: textView.font ?? font))
+            let lineTop = emptyLineRect.origin.y + inset.height - visibleRect.origin.y
+            let yPos = lineTop + (emptyLineRect.height - sz.height) / 2.0
+            s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
             return
         }
         
@@ -753,50 +758,44 @@ class LineNumberView: NSView {
         
         // Draw visible line numbers
         idx = charRange.location
-        while idx <= NSMaxRange(charRange) {
-            // Handle the case where cursor is on a new empty line after trailing newline
-            let isTrailingEmptyLine = idx >= content.length && content.length > 0 && 
-                (content.character(at: content.length - 1) == 0x0A || content.character(at: content.length - 1) == 0x0D)
+        while idx < content.length {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            let glyphIdx = layoutManager.glyphIndexForCharacter(at: idx)
+            let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
             
-            if idx >= content.length && content.length > 0 && !isTrailingEmptyLine {
-                break
-            }
-            
-            let safeIdx = min(idx, max(0, content.length - 1))
-            let range = content.lineRange(for: NSRange(location: safeIdx, length: 0))
-            let glyphIdx = layoutManager.glyphIndexForCharacter(at: safeIdx)
-            
-            var lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-            
-            // For trailing empty line, calculate position below the last line
-            if isTrailingEmptyLine {
-                let lastGlyphIdx = layoutManager.glyphIndexForCharacter(at: content.length - 1)
-                let lastLineRect = layoutManager.lineFragmentRect(forGlyphAt: lastGlyphIdx, effectiveRange: nil)
-                lineRect = NSRect(x: lastLineRect.origin.x, 
-                                  y: lastLineRect.origin.y + lastLineRect.height,
-                                  width: lastLineRect.width, 
-                                  height: lastLineRect.height)
-            }
-            
-            // Convert from text view coordinates to our view coordinates
-            let yPos = lineRect.origin.y + inset.height - visibleRect.origin.y
+            let lineTop = lineRect.origin.y + inset.height - visibleRect.origin.y
+            let lineHeight = lineRect.height
             
             let s = "\(lineNum)"
             let sz = s.size(withAttributes: attrs)
             // Right-align within centered column
             let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-            // Align the number's baseline with the text baseline so larger
-            // line heights don't drift the gutter relative to the text
-            let baselineOffset = layoutManager.location(forGlyphAt: glyphIdx).y
-            let pt = NSPoint(x: xPos, y: yPos + baselineOffset - numberFont.ascender)
-            s.draw(at: pt, withAttributes: attrs)
+            // Vertically center line number within line fragment
+            let yPos = lineTop + (lineHeight - sz.height) / 2.0
+            s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
             
             lineNum += 1
+            idx = NSMaxRange(range)
             
-            if isTrailingEmptyLine {
+            if idx > NSMaxRange(charRange) {
                 break
             }
-            idx = NSMaxRange(range)
+        }
+        
+        // Check for trailing empty line after final newline
+        if content.length > 0 {
+            let lastChar = content.character(at: content.length - 1)
+            if lastChar == 0x0A || lastChar == 0x0D {
+                let trailingLineRect = layoutManager.extraLineFragmentRect
+                let lineTop = trailingLineRect.origin.y + inset.height - visibleRect.origin.y
+                let lineHeight = trailingLineRect.height
+                
+                let s = "\(lineNum)"
+                let sz = s.size(withAttributes: attrs)
+                let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
+                let yPos = lineTop + (lineHeight - sz.height) / 2.0
+                s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
+            }
         }
     }
 }

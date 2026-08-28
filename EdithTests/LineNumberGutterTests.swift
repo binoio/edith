@@ -424,6 +424,227 @@ final class LineNumberVisualRegressionTests: XCTestCase {
                 "Gutter should never shrink below baseline at \(size)pt")
         }
     }
+    
+    // MARK: - Vertical Centering and No-Shift Tests
+    
+    func testLineNumbersAlwaysVerticallyCenteredAcrossLineHeights() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let textView = scrollView.textView
+        let lineNumberView = scrollView.lineNumberView
+        
+        let testText = "First line of code\nSecond line with some content\nThird line\nFourth line\n"
+        textView.string = testText
+        
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.font = font
+        lineNumberView.font = font
+        
+        let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
+        let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
+        
+        let lineHeights: [CGFloat] = [1.0, 1.2, 1.25, 1.5, 1.75, 2.0]
+        
+        for lh in lineHeights {
+            let style = NSMutableParagraphStyle()
+            style.lineHeightMultiple = lh
+            textView.defaultParagraphStyle = style
+            textView.typingAttributes[.paragraphStyle] = style
+            if let storage = textView.textStorage, storage.length > 0 {
+                storage.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: storage.length))
+            }
+            
+            let lm = textView.layoutManager!
+            let content = textView.string as NSString
+            let inset = textView.textContainerInset
+            
+            var lineNum = 1
+            var idx = 0
+            while idx < content.length {
+                let range = content.lineRange(for: NSRange(location: idx, length: 0))
+                let glyphIdx = lm.glyphIndexForCharacter(at: idx)
+                let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
+                
+                let lineTop = lineRect.origin.y + inset.height
+                let lineHeight = lineRect.height
+                let lineCenter = lineTop + lineHeight / 2.0
+                
+                let sz = "\(lineNum)".size(withAttributes: attrs)
+                let yPos = lineTop + (lineHeight - sz.height) / 2.0
+                let numberCenter = yPos + sz.height / 2.0
+                
+                XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
+                               "Line \(lineNum) number center should exactly match line fragment center at line height \(lh)x")
+                
+                lineNum += 1
+                idx = NSMaxRange(range)
+            }
+            
+            // Trailing empty line
+            let trailingLineRect = lm.extraLineFragmentRect
+            let lineTop = trailingLineRect.origin.y + inset.height
+            let lineHeight = trailingLineRect.height
+            let lineCenter = lineTop + lineHeight / 2.0
+            let sz = "\(lineNum)".size(withAttributes: attrs)
+            let yPos = lineTop + (lineHeight - sz.height) / 2.0
+            let numberCenter = yPos + sz.height / 2.0
+            
+            XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
+                           "Trailing line \(lineNum) number center should exactly match line fragment center at line height \(lh)x")
+        }
+    }
+    
+    func testLineNumberVerticalPositionDoesNotShiftOnLineMutations() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let textView = scrollView.textView
+        let lineNumberView = scrollView.lineNumberView
+        
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.font = font
+        lineNumberView.font = font
+        
+        let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
+        let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
+        
+        func calculateLine1YPos(for text: String) -> CGFloat {
+            textView.string = text
+            let lm = textView.layoutManager!
+            let content = textView.string as NSString
+            let inset = textView.textContainerInset
+            
+            let lineRect: NSRect
+            if content.length == 0 {
+                lineRect = lm.extraLineFragmentRect.height > 0
+                    ? lm.extraLineFragmentRect
+                    : NSRect(x: 0, y: 0, width: 500, height: lm.defaultLineHeight(for: font))
+            } else {
+                let glyphIdx = lm.glyphIndexForCharacter(at: 0)
+                lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
+            }
+            
+            let lineTop = lineRect.origin.y + inset.height
+            let sz = "1".size(withAttributes: attrs)
+            return lineTop + (lineRect.height - sz.height) / 2.0
+        }
+        
+        let yEmpty = calculateLine1YPos(for: "")
+        let ySingleChar = calculateLine1YPos(for: "A")
+        let ySingleLine = calculateLine1YPos(for: "Hello World")
+        let yTrailingNewline = calculateLine1YPos(for: "Hello World\n")
+        let yMultipleLines = calculateLine1YPos(for: "Hello World\nSecond line\nThird line")
+        let yMultipleNewlines = calculateLine1YPos(for: "Hello World\n\n\n\n")
+        let yAfterDeletion = calculateLine1YPos(for: "H")
+        let yBackToEmpty = calculateLine1YPos(for: "")
+        
+        XCTAssertEqual(yEmpty, ySingleChar, accuracy: 0.001, "Line 1 should not shift between empty and single char")
+        XCTAssertEqual(ySingleChar, ySingleLine, accuracy: 0.001, "Line 1 should not shift between single char and full line")
+        XCTAssertEqual(ySingleLine, yTrailingNewline, accuracy: 0.001, "Line 1 should not shift when trailing newline added")
+        XCTAssertEqual(yTrailingNewline, yMultipleLines, accuracy: 0.001, "Line 1 should not shift when multiple lines added")
+        XCTAssertEqual(yMultipleLines, yMultipleNewlines, accuracy: 0.001, "Line 1 should not shift with multiple empty lines")
+        XCTAssertEqual(yMultipleNewlines, yAfterDeletion, accuracy: 0.001, "Line 1 should not shift after line deletions")
+        XCTAssertEqual(yAfterDeletion, yBackToEmpty, accuracy: 0.001, "Line 1 should return to exact empty position")
+    }
+    
+    func testLineNumbersVerticallyCenteredWithVariousFontSizes() {
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let textView = scrollView.textView
+        let lineNumberView = scrollView.lineNumberView
+        
+        textView.string = "Line 1\nLine 2\nLine 3"
+        let fontSizes: [CGFloat] = [9.0, 11.0, 13.0, 16.0, 18.0, 24.0, 32.0]
+        
+        for size in fontSizes {
+            let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+            textView.font = font
+            lineNumberView.font = font
+            
+            let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
+            let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
+            
+            let lm = textView.layoutManager!
+            let content = textView.string as NSString
+            let inset = textView.textContainerInset
+            
+            var lineNum = 1
+            var idx = 0
+            while idx < content.length {
+                let range = content.lineRange(for: NSRange(location: idx, length: 0))
+                let glyphIdx = lm.glyphIndexForCharacter(at: idx)
+                let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
+                
+                let lineTop = lineRect.origin.y + inset.height
+                let lineHeight = lineRect.height
+                let lineCenter = lineTop + lineHeight / 2.0
+                
+                let sz = "\(lineNum)".size(withAttributes: attrs)
+                let yPos = lineTop + (lineHeight - sz.height) / 2.0
+                let numberCenter = yPos + sz.height / 2.0
+                
+                XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
+                               "Line \(lineNum) should be centered at font size \(size)pt")
+                
+                lineNum += 1
+                idx = NSMaxRange(range)
+            }
+        }
+    }
+    
+    func testScreenshotCaptureAndBitmapRender() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let outputDir = appSupport.appendingPathComponent("Edith/Screenshots")
+        try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
+        print("Saving screenshots to: \(outputDir.path)")
+        
+        let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 450, height: 250))
+        let textView = scrollView.textView
+        let lineNumberView = scrollView.lineNumberView
+        
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.font = font
+        lineNumberView.font = font
+        
+        func capture(named filename: String, text: String, lineHeight: CGFloat) {
+            let style = NSMutableParagraphStyle()
+            style.lineHeightMultiple = lineHeight
+            textView.defaultParagraphStyle = style
+            textView.typingAttributes[.paragraphStyle] = style
+            textView.string = text
+            if let storage = textView.textStorage, storage.length > 0 {
+                storage.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: storage.length))
+            }
+            
+            scrollView.layoutSubtreeIfNeeded()
+            scrollView.displayIfNeeded()
+            lineNumberView.needsDisplay = true
+            
+            guard let rep = scrollView.bitmapImageRepForCachingDisplay(in: scrollView.bounds) else {
+                XCTFail("Failed to create bitmap rep for \(filename)")
+                return
+            }
+            scrollView.cacheDisplay(in: scrollView.bounds, to: rep)
+            
+            guard let pngData = rep.representation(using: .png, properties: [:]) else {
+                XCTFail("Failed to create PNG data for \(filename)")
+                return
+            }
+            
+            let fileURL = outputDir.appendingPathComponent(filename)
+            try? pngData.write(to: fileURL)
+            
+            let attachment = XCTAttachment(data: pngData, uniformTypeIdentifier: "public.png")
+            attachment.name = filename
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        
+        capture(named: "01_empty_1_0x.png", text: "", lineHeight: 1.0)
+        capture(named: "02_single_line_1_0x.png", text: "let message = \"Hello Edith!\"", lineHeight: 1.0)
+        capture(named: "03_multi_line_1_0x.png", text: "func main() {\n    let x = 10\n    let y = 20\n    print(x + y)\n}\n", lineHeight: 1.0)
+        capture(named: "04_empty_1_5x.png", text: "", lineHeight: 1.5)
+        capture(named: "05_multi_line_1_5x.png", text: "func main() {\n    let x = 10\n    let y = 20\n    print(x + y)\n}\n", lineHeight: 1.5)
+        capture(named: "06_multi_line_2_0x.png", text: "func main() {\n    let x = 10\n    let y = 20\n    print(x + y)\n}\n", lineHeight: 2.0)
+        capture(named: "07_inserted_lines.png", text: "Line 1\nLine 1.5 (inserted)\nLine 2\nLine 3\n", lineHeight: 1.5)
+        capture(named: "08_deleted_lines.png", text: "Line 1\nLine 3\n", lineHeight: 1.5)
+    }
 }
 
 // Extension to check if font is fixed pitch
