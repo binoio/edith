@@ -170,6 +170,87 @@
             font-weight: bold;
         }
 
+        .screenshots {
+            margin: 100px 0;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+        }
+
+        .screenshot-item {
+            display: grid;
+            gap: 12px;
+        }
+
+        /* An odd one out spans the row and sits centred at half width. */
+        .screenshot-item:last-child:nth-child(odd) {
+            grid-column: 1 / span 2;
+            width: 50%;
+            justify-self: center;
+        }
+
+        .screenshot-item h4 {
+            margin: 0;
+            text-align: center;
+            color: var(--secondary);
+            font-weight: 500;
+        }
+
+        .screenshot-item > a > img {
+            width: 100%;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+
+        .screenshot-item > a > img:hover {
+            transform: scale(1.02);
+        }
+
+        /* Lightbox effect */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            cursor: zoom-out;
+        }
+
+        .lightbox:target {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox img {
+            width: auto;
+            height: auto;
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: var(--radius);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            object-fit: contain;
+        }
+
+        @media (max-width: 768px) {
+            .screenshot-grid {
+                grid-template-columns: 1fr;
+            }
+            .screenshot-item:last-child:nth-child(odd) {
+                grid-column: auto;
+                width: 100%;
+            }
+        }
+
         footer {
             text-align: center;
             padding: 60px 0;
@@ -254,6 +335,37 @@
                 <div class="vim-cmd"><span>i a o</span> insert</div>
                 <div class="vim-cmd"><span>x dd</span> delete</div>
                 <div class="vim-cmd"><span>:w :q</span> save/quit</div>
+            </div>
+        </section>
+
+
+        <section class="screenshots">
+            <h2 style="text-align: center; margin-bottom: 40px;">Screenshots</h2>
+            <div class="screenshot-grid">
+                <div class="screenshot-item">
+                    <a href="#img1"><img src="images/main-window.png" alt="Edith main window" loading="lazy"></a>
+                    <div id="img1" class="lightbox" onclick="location.href='#';">
+                        <img src="images/main-window.png" alt="">
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <a href="#img2"><img src="images/vim-mode.png" alt="Vim-like mode" loading="lazy"></a>
+                    <div id="img2" class="lightbox" onclick="location.href='#';">
+                        <img src="images/vim-mode.png" alt="">
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <a href="#img3"><img src="images/find-replace.png" alt="Find and replace" loading="lazy"></a>
+                    <div id="img3" class="lightbox" onclick="location.href='#';">
+                        <img src="images/find-replace.png" alt="">
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <a href="#img4"><img src="images/settings-window.png" alt="Settings" loading="lazy"></a>
+                    <div id="img4" class="lightbox" onclick="location.href='#';">
+                        <img src="images/settings-window.png" alt="">
+                    </div>
+                </div>
             </div>
         </section>
 
