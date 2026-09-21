@@ -3,6 +3,52 @@
     <channel>
         <title>Edith</title>
         <item>
+            <title>2.0.0</title>
+            <pubDate>Mon, 21 Sep 2026 06:33:54 -0400</pubDate>
+            <sparkle:version>2.0.0</sparkle:version>
+            <sparkle:shortVersionString>2.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Edith 2.0.0</h2>
+
+<h3>Requires macOS 15.0 or later</h3>
+<ul>
+  <li>Edith now requires macOS 15.0 (Sequoia) or later. Macs running macOS 14 or earlier stay on Edith 1.4.1 and will not be offered this update.</li>
+</ul>
+
+<h3>Find &amp; Replace is now a floating panel</h3>
+<ul>
+  <li>Find &amp; Replace floats above the document instead of taking over as the active window, so the editor stays visible and usable behind it.</li>
+  <li>Compact single-line Find and Replace fields replace the oversized text boxes, with working placeholder text.</li>
+  <li>Inline previous/next/find-all controls sit beside the Find field; Return finds the next match and Shift+Return the previous.</li>
+  <li>Options are a single row of labelled checkboxes (Aa, .*, Sel, Wrap) with tooltips, and the match count no longer shifts the layout as you type.</li>
+  <li>Actions are disabled when there is nothing to act on, and the document picker is hidden unless more than one document is open.</li>
+</ul>
+
+<h3>Fixed: incorrect match count and stale highlighting</h3>
+<ul>
+  <li>Narrowing a search no longer reports an impossible count such as &ldquo;8 of 7&rdquo;. The current match is re-anchored every time the match set changes.</li>
+  <li>Highlights from a previous, wider search no longer linger. Searching for &ldquo;Cloud&rdquo; highlights the seven whole words rather than leaving every letter &ldquo;c&rdquo; highlighted.</li>
+  <li>An invalid regular expression is now reported as &ldquo;Invalid pattern&rdquo; rather than silently finding nothing.</li>
+  <li>Patterns that can match the empty string, such as <code>x*</code>, no longer produce matches that highlight nothing and stall Find Next.</li>
+</ul>
+
+<h3>Fixed: stray line number in the gutter</h3>
+<ul>
+  <li>Starting a search could print an extra line number partway down the gutter, out of sequence with the lines around it. The trailing line number is now drawn only when the end of the document is actually on screen.</li>
+  <li>Wrapped paragraphs no longer duplicate or skip line numbers.</li>
+  <li>Clicking a line number in the gutter now selects the line it sits on; previously a click could select the line above.</li>
+</ul>
+
+<h3>Editing and performance</h3>
+<ul>
+  <li>Replace and Replace All now edit only the matched ranges instead of rewriting the whole document, preserving the cursor, the scroll position, and single-step undo.</li>
+  <li>Find highlighting is drawn as a display-only overlay, so it no longer marks the document as edited or interferes with syntax highlighting.</li>
+  <li>Incremental search is debounced and the gutter keeps a cached line index, keeping large documents responsive while typing a search.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/binoio/edith/releases/download/v2.0.0/Edith-2.0.0.zip" length="3863624" type="application/octet-stream" sparkle:edSignature="FP20r1MMujtE33HBEql3M+TIb0u4KbvYNkP06Z3HSss2WjO1AJzRgsI7PZHUqy8hhXnOpM9yRih0k2jXx9OrDg=="/>
+        </item>
+        <item>
             <title>1.4.1</title>
             <pubDate>Thu, 27 Aug 2026 23:24:02 -0400</pubDate>
             <sparkle:version>1.4.1</sparkle:version>
