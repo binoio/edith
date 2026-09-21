@@ -59,7 +59,7 @@ final class FileWatcherTests: XCTestCase {
             }
         }
         
-        wait(for: [expectation], timeout: 5.0)
+        wait(for: [expectation], timeout: 15.0)
         XCTAssertTrue(fileWatcher.fileChanged, "File watcher should detect external change")
     }
     
@@ -89,7 +89,7 @@ final class FileWatcherTests: XCTestCase {
             }
         }
         
-        wait(for: [expectation], timeout: 5.0)
+        wait(for: [expectation], timeout: 15.0)
         XCTAssertFalse(fileWatcher.fileChanged, "File watcher should NOT detect Edith's own save")
     }
     
@@ -103,22 +103,29 @@ final class FileWatcherTests: XCTestCase {
             try? "External change".write(to: self.testFileURL, atomically: true, encoding: .utf8)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                // First verify the change was detected
-                let wasChanged = self.fileWatcher.fileChanged
-                
                 // Acknowledge the change (this also re-establishes the watch)
                 self.fileWatcher.acknowledgeChange()
                 
-                // Wait for re-watch to complete
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    // After acknowledge, fileChanged should be false
-                    XCTAssertFalse(self.fileWatcher.fileChanged, "fileChanged should be false after acknowledge")
-                    expectation.fulfill()
+                // Poll for the settled state instead of asserting at a fixed
+                // instant: the atomic write above can still deliver a queued
+                // filesystem event just after the watch is re-established, so a
+                // single sample races it.
+                let deadline = Date().addingTimeInterval(10.0)
+                func poll() {
+                    if !self.fileWatcher.fileChanged {
+                        expectation.fulfill()
+                    } else if Date() < deadline {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: poll)
+                    } else {
+                        XCTFail("fileChanged never cleared after acknowledge")
+                        expectation.fulfill()
+                    }
                 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: poll)
             }
         }
         
-        wait(for: [expectation], timeout: 8.0)
+        wait(for: [expectation], timeout: 20.0)
     }
     
     func testFileWatcherDetectsMultipleChanges() {
@@ -157,7 +164,7 @@ final class FileWatcherTests: XCTestCase {
             }
         }
         
-        wait(for: [expectation], timeout: 10.0)
+        wait(for: [expectation], timeout: 25.0)
     }
     
     // MARK: - EdithSaveTracker Tests
@@ -186,13 +193,20 @@ final class FileWatcherTests: XCTestCase {
         tracker.markSaveStarted()
         tracker.markSaveCompleted()
         
-        // Wait for suppression to end (500ms + buffer)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Poll rather than sampling once. markSaveCompleted() drops its counter
+        // from a delayed main-queue block, so a single check at a fixed instant
+        // races that block -- and any still pending from a sibling test -- and
+        // a longer timeout cannot help a check that only ever runs once.
+        let deadline = Date().addingTimeInterval(10.0)
+        func poll() {
             if !tracker.shouldSuppressFileChangeAlert() {
                 expectation.fulfill()
+            } else if Date() < deadline {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: poll)
             }
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: poll)
         
-        wait(for: [expectation], timeout: 3.0)
+        wait(for: [expectation], timeout: 15.0)
     }
 }

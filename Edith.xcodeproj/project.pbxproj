@@ -38,6 +38,7 @@
 		T0A /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T19; };
 		T0B /* UpdaterViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A; };
 		B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */; };
+		FA11DE00C0DE0001BBBB0001 /* FindReplaceStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA11DE00C0DE0001AAAA0001 /* FindReplaceStateTests.swift */; };
 		FMB001 /* FindReplaceManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FMT001 /* FindReplaceManagerTests.swift */; };
 		U01 /* ZoomUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U10; };
 		U03 /* SessionRestoreUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U12; };
@@ -95,6 +96,7 @@
 		T19 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		T1A /* UpdaterViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModelTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchEngineTests.swift; sourceTree = "<group>"; };
+		FA11DE00C0DE0001AAAA0001 /* FindReplaceStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceStateTests.swift; sourceTree = "<group>"; };
 		FMT001 /* FindReplaceManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceManagerTests.swift; sourceTree = "<group>"; };
 		U10 /* ZoomUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomUITests.swift; sourceTree = "<group>"; };
 		U11 /* EdithUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EdithUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -176,6 +178,7 @@
 				T19 /* SyntaxHighlighterTests.swift */,
 				T1A /* UpdaterViewModelTests.swift */,
 				A1B2C3D4E5F6789012345678 /* SearchEngineTests.swift */,
+				FA11DE00C0DE0001AAAA0001 /* FindReplaceStateTests.swift */,
 				FMT001 /* FindReplaceManagerTests.swift */,
 			);
 			path = EdithTests;
@@ -339,6 +342,7 @@
 				T0A /* SyntaxHighlighterTests.swift in Sources */,
 				T0B /* UpdaterViewModelTests.swift in Sources */,
 				B2C3D4E5F6789012345678A1 /* SearchEngineTests.swift in Sources */,
+				FA11DE00C0DE0001BBBB0001 /* FindReplaceStateTests.swift in Sources */,
 				FMB001 /* FindReplaceManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -446,7 +450,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -503,7 +507,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -520,7 +524,7 @@
 				CODE_SIGN_ENTITLEMENTS = Edith/Edith.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1.4.1;
+				CURRENT_PROJECT_VERSION = 2.0.0;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -532,7 +536,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.1;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.texteditor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -549,7 +553,7 @@
 				CODE_SIGN_ENTITLEMENTS = Edith/Edith.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1.4.1;
+				CURRENT_PROJECT_VERSION = 2.0.0;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -561,7 +565,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.1;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.texteditor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -576,8 +580,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.4.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -593,8 +597,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.4.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -609,8 +613,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.4.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -625,8 +629,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.4.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.edith.EdithUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

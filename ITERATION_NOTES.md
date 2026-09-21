@@ -45,7 +45,7 @@ Run `./scripts/test.sh` to verify all functionality.
 ## Tech Stack
 - SwiftUI + NSTextView wrapper, @AppStorage, DocumentGroup
 - HighlightSwift for syntax highlighting
-- Target: macOS 13.0+
+- Target: macOS 15.0+
 
 ## Scripts
 - `./scripts/build.sh [Debug|Release]` - Build the app

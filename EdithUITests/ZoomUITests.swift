@@ -14,6 +14,9 @@ final class ZoomUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        // Opt out of session restore: without it each launch reopens the
+        // previous test's documents and the suite accumulates windows
+        app.launchArguments += ["-EdithUITesting"]
         app.launch()
         
         // Create a new document
@@ -22,6 +25,7 @@ final class ZoomUITests: XCTestCase {
     }
     
     override func tearDownWithError() throws {
+        app.typeKey("w", modifierFlags: [.command, .option])
         app.terminate()
     }
     

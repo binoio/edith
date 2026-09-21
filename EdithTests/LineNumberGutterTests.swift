@@ -233,6 +233,11 @@ final class LineNumberGutterIntegrationTests: XCTestCase {
     func testMagnificationAffectsFontSize() {
         let settings = SettingsManager()
         let baseFontSize = settings.fontSize
+        // SettingsManager is @AppStorage on UserDefaults.standard, so leaving a
+        // value behind here races SettingsPersistenceTests in a parallel worker
+        let previousMagnification = settings.magnification
+        defer { settings.magnification = previousMagnification }
+        
         settings.magnification = 2.0
         
         let effectiveSize = settings.fontSize * settings.magnification
@@ -432,19 +437,17 @@ final class LineNumberVisualRegressionTests: XCTestCase {
         let textView = scrollView.textView
         let lineNumberView = scrollView.lineNumberView
         
-        let testText = "First line of code\nSecond line with some content\nThird line\nFourth line\n"
-        textView.string = testText
+        textView.string = "First line of code\nSecond line with some content\nThird line\nFourth line\n"
         
         let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.font = font
         lineNumberView.font = font
+        scrollView.layoutSubtreeIfNeeded()
         
         let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
         
-        let lineHeights: [CGFloat] = [1.0, 1.2, 1.25, 1.5, 1.75, 2.0]
-        
-        for lh in lineHeights {
+        for lh in [1.0, 1.2, 1.25, 1.5, 1.75, 2.0] as [CGFloat] {
             let style = NSMutableParagraphStyle()
             style.lineHeightMultiple = lh
             textView.defaultParagraphStyle = style
@@ -452,96 +455,53 @@ final class LineNumberVisualRegressionTests: XCTestCase {
             if let storage = textView.textStorage, storage.length > 0 {
                 storage.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: storage.length))
             }
+            scrollView.layoutSubtreeIfNeeded()
             
-            let lm = textView.layoutManager!
-            let content = textView.string as NSString
-            let inset = textView.textContainerInset
+            // Exercise the function the gutter actually draws with
+            let lines = lineNumberView.layoutVisibleLineNumbers()
+            XCTAssertFalse(lines.isEmpty, "gutter produced no line numbers at line height \(lh)x")
             
-            var lineNum = 1
-            var idx = 0
-            while idx < content.length {
-                let range = content.lineRange(for: NSRange(location: idx, length: 0))
-                let glyphIdx = lm.glyphIndexForCharacter(at: idx)
-                let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-                
-                let lineTop = lineRect.origin.y + inset.height
-                let lineHeight = lineRect.height
-                let lineCenter = lineTop + lineHeight / 2.0
-                
-                let sz = "\(lineNum)".size(withAttributes: attrs)
-                let yPos = lineTop + (lineHeight - sz.height) / 2.0
+            for line in lines {
+                let lineCenter = line.rect.origin.y + line.rect.height / 2.0
+                let sz = "\(line.number)".size(withAttributes: attrs)
+                // draw(_:) centers the number inside line.rect with this formula
+                let yPos = line.rect.origin.y + (line.rect.height - sz.height) / 2.0
                 let numberCenter = yPos + sz.height / 2.0
                 
                 XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
-                               "Line \(lineNum) number center should exactly match line fragment center at line height \(lh)x")
-                
-                lineNum += 1
-                idx = NSMaxRange(range)
+                               "Line \(line.number) number center should match its fragment center at line height \(lh)x")
             }
-            
-            // Trailing empty line
-            let trailingLineRect = lm.extraLineFragmentRect
-            let lineTop = trailingLineRect.origin.y + inset.height
-            let lineHeight = trailingLineRect.height
-            let lineCenter = lineTop + lineHeight / 2.0
-            let sz = "\(lineNum)".size(withAttributes: attrs)
-            let yPos = lineTop + (lineHeight - sz.height) / 2.0
-            let numberCenter = yPos + sz.height / 2.0
-            
-            XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
-                           "Trailing line \(lineNum) number center should exactly match line fragment center at line height \(lh)x")
         }
     }
     
-    func testLineNumberVerticalPositionDoesNotShiftOnLineMutations() {
+    /// The gutter's rects must track the text view's own line fragments
+    func testGutterRectsTrackTextLineFragments() {
         let scrollView = LineNumberScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let textView = scrollView.textView
         let lineNumberView = scrollView.lineNumberView
         
-        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        textView.font = font
-        lineNumberView.font = font
+        textView.string = "Alpha\nBeta\nGamma\nDelta\n"
+        scrollView.layoutSubtreeIfNeeded()
         
-        let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
-        let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
+        let layoutManager = textView.layoutManager!
+        let content = textView.string as NSString
+        let inset = textView.textContainerInset
         
-        func calculateLine1YPos(for text: String) -> CGFloat {
-            textView.string = text
-            let lm = textView.layoutManager!
-            let content = textView.string as NSString
-            let inset = textView.textContainerInset
-            
-            let lineRect: NSRect
-            if content.length == 0 {
-                lineRect = lm.extraLineFragmentRect.height > 0
-                    ? lm.extraLineFragmentRect
-                    : NSRect(x: 0, y: 0, width: 500, height: lm.defaultLineHeight(for: font))
-            } else {
-                let glyphIdx = lm.glyphIndexForCharacter(at: 0)
-                lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-            }
-            
-            let lineTop = lineRect.origin.y + inset.height
-            let sz = "1".size(withAttributes: attrs)
-            return lineTop + (lineRect.height - sz.height) / 2.0
+        var expected: [CGFloat] = []
+        var idx = 0
+        while idx < content.length {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            let glyphIdx = layoutManager.glyphIndexForCharacter(at: idx)
+            let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
+            expected.append(fragment.origin.y + inset.height - textView.visibleRect.origin.y)
+            idx = NSMaxRange(range)
         }
         
-        let yEmpty = calculateLine1YPos(for: "")
-        let ySingleChar = calculateLine1YPos(for: "A")
-        let ySingleLine = calculateLine1YPos(for: "Hello World")
-        let yTrailingNewline = calculateLine1YPos(for: "Hello World\n")
-        let yMultipleLines = calculateLine1YPos(for: "Hello World\nSecond line\nThird line")
-        let yMultipleNewlines = calculateLine1YPos(for: "Hello World\n\n\n\n")
-        let yAfterDeletion = calculateLine1YPos(for: "H")
-        let yBackToEmpty = calculateLine1YPos(for: "")
-        
-        XCTAssertEqual(yEmpty, ySingleChar, accuracy: 0.001, "Line 1 should not shift between empty and single char")
-        XCTAssertEqual(ySingleChar, ySingleLine, accuracy: 0.001, "Line 1 should not shift between single char and full line")
-        XCTAssertEqual(ySingleLine, yTrailingNewline, accuracy: 0.001, "Line 1 should not shift when trailing newline added")
-        XCTAssertEqual(yTrailingNewline, yMultipleLines, accuracy: 0.001, "Line 1 should not shift when multiple lines added")
-        XCTAssertEqual(yMultipleLines, yMultipleNewlines, accuracy: 0.001, "Line 1 should not shift with multiple empty lines")
-        XCTAssertEqual(yMultipleNewlines, yAfterDeletion, accuracy: 0.001, "Line 1 should not shift after line deletions")
-        XCTAssertEqual(yAfterDeletion, yBackToEmpty, accuracy: 0.001, "Line 1 should return to exact empty position")
+        let lines = lineNumberView.layoutVisibleLineNumbers()
+        for (offset, expectedY) in expected.enumerated() {
+            XCTAssertEqual(lines[offset].rect.origin.y, expectedY, accuracy: 0.001,
+                           "line \(offset + 1) is drawn away from its text")
+        }
     }
     
     func testLineNumbersVerticallyCenteredWithVariousFontSizes() {
@@ -550,40 +510,25 @@ final class LineNumberVisualRegressionTests: XCTestCase {
         let lineNumberView = scrollView.lineNumberView
         
         textView.string = "Line 1\nLine 2\nLine 3"
-        let fontSizes: [CGFloat] = [9.0, 11.0, 13.0, 16.0, 18.0, 24.0, 32.0]
         
-        for size in fontSizes {
+        for size in [9.0, 11.0, 13.0, 16.0, 18.0, 24.0, 32.0] as [CGFloat] {
             let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
             textView.font = font
             lineNumberView.font = font
+            scrollView.layoutSubtreeIfNeeded()
             
             let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
             let attrs: [NSAttributedString.Key: Any] = [.font: numberFont]
             
-            let lm = textView.layoutManager!
-            let content = textView.string as NSString
-            let inset = textView.textContainerInset
+            let lines = lineNumberView.layoutVisibleLineNumbers()
+            XCTAssertEqual(lines.count, 3, "expected 3 line numbers at font size \(size)pt")
             
-            var lineNum = 1
-            var idx = 0
-            while idx < content.length {
-                let range = content.lineRange(for: NSRange(location: idx, length: 0))
-                let glyphIdx = lm.glyphIndexForCharacter(at: idx)
-                let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-                
-                let lineTop = lineRect.origin.y + inset.height
-                let lineHeight = lineRect.height
-                let lineCenter = lineTop + lineHeight / 2.0
-                
-                let sz = "\(lineNum)".size(withAttributes: attrs)
-                let yPos = lineTop + (lineHeight - sz.height) / 2.0
-                let numberCenter = yPos + sz.height / 2.0
-                
-                XCTAssertEqual(lineCenter, numberCenter, accuracy: 0.001,
-                               "Line \(lineNum) should be centered at font size \(size)pt")
-                
-                lineNum += 1
-                idx = NSMaxRange(range)
+            for line in lines {
+                let lineCenter = line.rect.origin.y + line.rect.height / 2.0
+                let sz = "\(line.number)".size(withAttributes: attrs)
+                let yPos = line.rect.origin.y + (line.rect.height - sz.height) / 2.0
+                XCTAssertEqual(lineCenter, yPos + sz.height / 2.0, accuracy: 0.001,
+                               "Line \(line.number) should be centered at font size \(size)pt")
             }
         }
     }
@@ -654,5 +599,135 @@ extension NSFont {
         let traits = descriptor.object(forKey: .traits) as? [NSFontDescriptor.TraitKey: Any]
         let symbolicTraits = traits?[.symbolic] as? UInt32 ?? 0
         return (symbolicTraits & NSFontDescriptor.SymbolicTraits.monoSpace.rawValue) != 0
+    }
+}
+
+// MARK: - Stray Line Number Regression
+
+/// Searching used to make the gutter print an extra number in the middle of
+/// the column -- "16" wedged between 8 and 9 -- because the trailing
+/// empty-line block ran unconditionally, with whatever number the draw loop
+/// had reached and whatever position a half-computed extraLineFragmentRect
+/// happened to hold.
+@MainActor
+final class LineNumberGutterStrayNumberTests: XCTestCase {
+    
+    private func makeGutter(text: String,
+                            size: NSSize = NSSize(width: 700, height: 520)) -> LineNumberScrollView {
+        let scrollView = LineNumberScrollView(frame: NSRect(origin: .zero, size: size))
+        scrollView.textView.string = text
+        scrollView.layoutSubtreeIfNeeded()
+        scrollView.displayIfNeeded()
+        return scrollView
+    }
+    
+    private func assertWellFormed(_ lines: [GutterLine],
+                                  file: StaticString = #filePath,
+                                  line: UInt = #line) {
+        let numbers = lines.map(\.number)
+        let tops = lines.map(\.rect.origin.y)
+        let described = zip(numbers, tops).map { "\($0)@\(Int($1))" }.joined(separator: " ")
+        
+        XCTAssertEqual(numbers, numbers.sorted(),
+                       "line numbers are out of order: \(described)", file: file, line: line)
+        XCTAssertEqual(Set(numbers).count, numbers.count,
+                       "a line number was drawn twice: \(described)", file: file, line: line)
+        if let first = numbers.first, let last = numbers.last {
+            XCTAssertEqual(numbers, Array(first...last),
+                           "line numbering skips a value: \(described)", file: file, line: line)
+        }
+        // The stray number's signature: a value drawn above a smaller one
+        XCTAssertEqual(tops, tops.sorted(),
+                       "a line number is drawn out of vertical order: \(described)", file: file, line: line)
+    }
+    
+    func testSearchDoesNotInjectAStrayLineNumber() {
+        let scrollView = makeGutter(text: CoverLetterFixture.text)
+        let gutter = scrollView.lineNumberView
+        
+        let state = FindReplaceState()
+        state.textView = scrollView.textView
+        scrollView.textView.setSelectedRange(NSRange(location: 120, length: 0))
+        
+        // Walk the same keystrokes that produced the report
+        for prefix in ["C", "Cl", "Clo", "Clou", "Cloud"] {
+            state.findText = prefix
+            state.performSearch()
+            
+            let lines = gutter.layoutVisibleLineNumbers()
+            XCTAssertFalse(lines.isEmpty, "gutter produced nothing while searching \"\(prefix)\"")
+            assertWellFormed(lines)
+            
+            let highest = lines.map(\.number).max()!
+            XCTAssertLessThanOrEqual(highest, gutter.totalLineCount,
+                                     "gutter drew line \(highest) in a \(gutter.totalLineCount)-line document while searching \"\(prefix)\"")
+        }
+    }
+    
+    func testNarrowWindowWrapsWithoutDuplicatingNumbers() {
+        // Narrow enough that the letter's paragraphs wrap over many rows
+        let scrollView = makeGutter(text: CoverLetterFixture.text,
+                                    size: NSSize(width: 360, height: 480))
+        assertWellFormed(scrollView.lineNumberView.layoutVisibleLineNumbers())
+    }
+    
+    func testTrailingLineNumberIsTheDocumentsLastLine() {
+        let scrollView = makeGutter(text: "Alpha\nBeta\nGamma\n",
+                                    size: NSSize(width: 400, height: 300))
+        let gutter = scrollView.lineNumberView
+        
+        let numbers = gutter.layoutVisibleLineNumbers().map(\.number)
+        XCTAssertEqual(numbers, [1, 2, 3, 4], "the empty line after the final newline should be line 4")
+        XCTAssertEqual(gutter.totalLineCount, 4)
+    }
+    
+    func testNoTrailingNumberWithoutATrailingNewline() {
+        let scrollView = makeGutter(text: "Alpha\nBeta\nGamma",
+                                    size: NSSize(width: 400, height: 300))
+        XCTAssertEqual(scrollView.lineNumberView.layoutVisibleLineNumbers().map(\.number), [1, 2, 3])
+    }
+    
+    /// With the end of the document off screen, the trailing number has no
+    /// business appearing anywhere in the visible column.
+    func testTrailingLineNumberStaysAwayWhenTheEndIsOffScreen() {
+        let text = (1...500).map { "Line \($0)" }.joined(separator: "\n") + "\n"
+        let scrollView = makeGutter(text: text, size: NSSize(width: 400, height: 200))
+        let gutter = scrollView.lineNumberView
+        
+        let lines = gutter.layoutVisibleLineNumbers()
+        assertWellFormed(lines)
+        
+        XCTAssertEqual(gutter.totalLineCount, 501)
+        XCTAssertFalse(lines.map(\.number).contains(501),
+                       "the trailing line number appeared while scrolled to the top of a 501-line document")
+        XCTAssertLessThan(lines.count, 100, "only the visible lines should be laid out")
+    }
+    
+    func testHitTestingAgreesWithTheDrawnNumbers() {
+        let scrollView = makeGutter(text: "Alpha\nBeta\nGamma\nDelta\n",
+                                    size: NSSize(width: 400, height: 300))
+        let gutter = scrollView.lineNumberView
+        
+        for line in gutter.layoutVisibleLineNumbers() {
+            let midpoint = NSPoint(x: gutter.bounds.midX, y: line.hitRect.midY)
+            XCTAssertEqual(gutter.lineNumber(at: midpoint), line.number,
+                           "clicking line \(line.number) resolves to a different line")
+        }
+    }
+    
+    func testLineStartCacheSurvivesEditing() {
+        let scrollView = makeGutter(text: "Alpha\nBeta\n", size: NSSize(width: 400, height: 300))
+        let gutter = scrollView.lineNumberView
+        XCTAssertEqual(gutter.totalLineCount, 3)
+        
+        scrollView.textView.string = "Alpha\nBeta\nGamma\nDelta\nEpsilon\n"
+        scrollView.layoutSubtreeIfNeeded()
+        XCTAssertEqual(gutter.totalLineCount, 6, "the cached line index went stale after an edit")
+        XCTAssertEqual(gutter.layoutVisibleLineNumbers().map(\.number), [1, 2, 3, 4, 5, 6])
+        
+        scrollView.textView.string = "Only one line"
+        scrollView.layoutSubtreeIfNeeded()
+        XCTAssertEqual(gutter.totalLineCount, 1)
+        XCTAssertEqual(gutter.layoutVisibleLineNumbers().map(\.number), [1])
     }
 }

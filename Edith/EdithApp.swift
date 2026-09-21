@@ -10,7 +10,6 @@ import Sparkle
 
 // MARK: - Notification names
 extension Notification.Name {
-    static let openFindReplace = Notification.Name("openFindReplace")
     static let claimUntitledRestore = Notification.Name("claimUntitledRestore")
 }
 
@@ -25,8 +24,23 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
     lazy var updaterViewModel = UpdaterViewModel(updater: updaterController.updater)
     
+    /// A test host must never restore the user's session.
+    ///
+    /// Unit tests run *inside* this app, so a restored session opens real
+    /// document windows in the test host -- and a large one can hang it before
+    /// the test runner connects. UI tests launch the app as a separate process
+    /// without XCTest linked, and there each launch would reopen what the
+    /// previous test left behind and then snapshot the larger set on quit,
+    /// growing the window count without bound across a suite; those pass the
+    /// launch argument instead. SessionRestoreUITests deliberately does not.
+    private var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
+            || ProcessInfo.processInfo.arguments.contains("-EdithUITesting")
+    }
+    
     // Read settings directly from UserDefaults (same source as SettingsManager)
     private var reopenDocumentsOnLaunch: Bool {
+        if isRunningTests { return false }
         if UserDefaults.standard.object(forKey: "reopenDocumentsOnLaunch") == nil {
             return true
         }
@@ -34,6 +48,7 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     private var restoreUnsavedChanges: Bool {
+        if isRunningTests { return false }
         if UserDefaults.standard.object(forKey: "restoreUnsavedChanges") == nil {
             return true
         }
@@ -69,6 +84,11 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Never persist a test's windows; the next launch would reopen them
+        if isRunningTests {
+            return .terminateNow
+        }
+        
         // Snapshot the session while every window is still open
         DocumentSessionCoordinator.shared.beginTermination()
         
@@ -97,6 +117,8 @@ class EdithAppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     // MARK: Session restore
     
     private func restoreSession() {
+        guard !isRunningTests else { return }
+        
         let openDocs = reopenDocumentsOnLaunch ? DocumentRestoreManager.shared.loadOpenDocuments() : []
         
         if openDocs.isEmpty {
@@ -258,17 +280,12 @@ struct ZoomCommands: Commands {
 // Search menu commands
 struct SearchCommands: Commands {
     @ObservedObject private var findReplaceManager = FindReplaceManager.shared
+    @Environment(\.openWindow) private var openWindow
     
     var body: some Commands {
         CommandMenu("Search") {
             Button("Find & Replace...") {
-                // Use NSApp to open the window
-                if let window = NSApp.windows.first(where: { $0.title == "Find & Replace" }) {
-                    window.makeKeyAndOrderFront(nil)
-                } else {
-                    // Post a notification to open the window
-                    NotificationCenter.default.post(name: .openFindReplace, object: nil)
-                }
+                openWindow(id: "find-replace")
             }
             .keyboardShortcut("f", modifiers: .command)
             
@@ -317,7 +334,6 @@ struct EdithApp: App {
     @NSApplicationDelegateAdaptor(EdithAppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager()
     @ObservedObject private var findReplaceManager = FindReplaceManager.shared
-    @Environment(\.openWindow) var openWindow
     
     var body: some Scene {
         DocumentGroup(newDocument: TextDocument()) { file in
@@ -326,9 +342,6 @@ struct EdithApp: App {
                 .onAppear {
                     // Pass settings to app delegate
                     appDelegate.settingsManager = settingsManager
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .openFindReplace)) { _ in
-                    openWindow(id: "find-replace")
                 }
         }
         .commands {
@@ -345,8 +358,10 @@ struct EdithApp: App {
                 .environmentObject(settingsManager)
         }
         
-        // Find & Replace window - uses the shared manager to get active document's state
-        Window("Find & Replace", id: "find-replace") {
+        // Find & Replace panel - uses the shared manager to get active document's
+        // state. A UtilityWindow is NSPanel-backed, so it floats over the
+        // document instead of taking the document's place as the key window.
+        UtilityWindow("Find & Replace", id: "find-replace") {
             if let state = findReplaceManager.activeState {
                 FindReplaceView(state: state, manager: findReplaceManager)
             } else if !findReplaceManager.documents.isEmpty {
@@ -361,8 +376,9 @@ struct EdithApp: App {
                     .frame(width: 300, height: 100)
             }
         }
-        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .windowLevel(.floating)
         .defaultPosition(.topTrailing)
+        .restorationBehavior(.disabled)
     }
 }

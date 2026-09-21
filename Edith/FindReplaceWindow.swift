@@ -5,233 +5,208 @@
 
 import SwiftUI
 
-/// Multi-line text editor for Find/Replace fields
-struct MultilineTextField: NSViewRepresentable {
-    @Binding var text: String
-    var placeholder: String
-    var onSubmit: (() -> Void)?
-    
-    func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSScrollView()
-        let textView = NSTextView()
-        
-        textView.isRichText = false
-        textView.font = .systemFont(ofSize: NSFont.systemFontSize)
-        textView.backgroundColor = .textBackgroundColor
-        textView.drawsBackground = true
-        textView.isEditable = true
-        textView.isSelectable = true
-        textView.allowsUndo = true
-        textView.delegate = context.coordinator
-        textView.textContainerInset = NSSize(width: 4, height: 4)
-        
-        // Set placeholder
-        if text.isEmpty {
-            textView.string = ""
-        }
-        
-        scrollView.documentView = textView
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
-        scrollView.borderType = .bezelBorder
-        
-        return scrollView
-    }
-    
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
-        if textView.string != text {
-            textView.string = text
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, NSTextViewDelegate {
-        var parent: MultilineTextField
-        
-        init(_ parent: MultilineTextField) {
-            self.parent = parent
-        }
-        
-        func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
-            parent.text = textView.string
-        }
-        
-        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-            // Handle Enter key to submit (Option+Enter for newline)
-            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
-                if NSEvent.modifierFlags.contains(.option) {
-                    // Option+Enter inserts actual newline
-                    return false
-                } else {
-                    // Enter triggers search
-                    parent.onSubmit?()
-                    return true
-                }
-            }
-            return false
-        }
-    }
-}
-
-/// Find & Replace window view
+/// Find & Replace panel: a compact floating inspector over the document.
 struct FindReplaceView: View {
     @ObservedObject var state: FindReplaceState
     @ObservedObject var manager: FindReplaceManager
     
+    @FocusState private var findFieldFocused: Bool
+    
+    private var hasPattern: Bool { !manager.findText.isEmpty }
+    private var canReplace: Bool { state.hasMatches && state.patternError == nil }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Document selector
-            HStack {
-                Text("Document:")
-                    .font(.headline)
-                Picker("", selection: Binding(
-                    get: { manager.activeState.map { ObjectIdentifier($0) } },
-                    set: { newId in
-                        if let newId = newId,
-                           let doc = manager.documents.first(where: { $0.id == newId }) {
-                            manager.selectDocument(doc.state)
-                        }
-                    }
-                )) {
-                    ForEach(manager.documents) { doc in
-                        Text(doc.name).tag(Optional(doc.id))
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: 250)
-            }
-            
-            Divider()
-            
-            HStack(alignment: .top, spacing: 16) {
-                // Left side: Fields and options
-                VStack(alignment: .leading, spacing: 12) {
-                    // Find field - uses manager's shared findText
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Find:")
-                            .font(.headline)
-                        MultilineTextField(text: $manager.findText, placeholder: "Search text") {
-                            manager.syncAndSearch()
-                            state.findNext()
-                        }
-                        .frame(height: 60)
-                        .onChange(of: manager.findText) { _ in
-                            manager.syncAndSearch()
-                        }
-                    }
-                    
-                    // Replace field - uses manager's shared replaceText
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Replace:")
-                            .font(.headline)
-                        MultilineTextField(text: $manager.replaceText, placeholder: "Replacement text")
-                            .frame(height: 60)
-                            .onChange(of: manager.replaceText) { _ in
-                                state.replaceText = manager.replaceText
-                            }
-                    }
-                    
-                    Divider()
-                    
-                    // Options in a grid - use manager's shared options
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 20) {
-                            Toggle("Case sensitive", isOn: $manager.caseSensitive)
-                                .onChange(of: manager.caseSensitive) { _ in manager.syncAndSearch() }
-                            
-                            Toggle("PCRE syntax", isOn: $manager.usePCRE)
-                                .onChange(of: manager.usePCRE) { _ in manager.syncAndSearch() }
-                        }
-                        
-                        HStack(spacing: 20) {
-                            Toggle("Selected text only", isOn: $state.selectedTextOnly)
-                                .disabled(state.initialSelectionRange == nil)
-                                .onChange(of: state.selectedTextOnly) { _ in manager.syncAndSearch() }
-                            
-                            Toggle("Wrap around", isOn: $manager.wrapAround)
-                                .onChange(of: manager.wrapAround) { _ in
-                                    state.wrapAround = manager.wrapAround
-                                }
-                        }
-                    }
-                    
-                    // Match count - always reserve space to prevent layout shift
-                    HStack {
-                        if manager.findText.isEmpty {
-                            Text(" ")
-                                .foregroundColor(.clear)
-                        } else if state.hasMatches {
-                            Text("\(state.currentMatchIndex + 1) of \(state.totalMatches) matches")
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("No matches")
-                                .foregroundColor(.red)
-                        }
-                        Spacer()
-                    }
-                    .frame(height: 16)
-                    
-                    Spacer()
-                }
-                
+        VStack(alignment: .leading, spacing: 10) {
+            if manager.documents.count > 1 {
+                documentPicker
                 Divider()
-                
-                // Right side: Action buttons in a column
-                VStack(spacing: 8) {
-                    Group {
-                        Button("Find Next") {
-                            state.findNext()
-                        }
-                        
-                        Button("Find Previous") {
-                            state.findPrevious()
-                        }
-                        
-                        Button("Find All") {
-                            state.findAll()
-                        }
-                        
-                        Button("Extract All") {
-                            state.extractAll()
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Divider()
-                        .padding(.vertical, 4)
-                    
-                    Group {
-                        Button("Replace Next") {
-                            state.replaceNext()
-                        }
-                        
-                        Button("Replace All") {
-                            state.replaceAll()
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    Spacer()
-                }
-                .frame(width: 120)
             }
+            
+            fields
+            optionsRow
+            Divider()
+            actions
+            
+            // Shift+Return searches backwards; onSubmit cannot see modifiers
+            Button("") { state.findPrevious() }
+                .keyboardShortcut(.return, modifiers: .shift)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
         }
-        .padding()
-        .frame(minWidth: 520, minHeight: 340)
+        .padding(14)
+        .frame(minWidth: 400)
         .onAppear {
             manager.ensureActiveState()
             state.captureSelection()
-            // Sync manager's search text to state and search
+            findFieldFocused = true
             if !manager.findText.isEmpty {
                 manager.syncAndSearch()
             }
         }
+    }
+    
+    // MARK: - Document picker
+    
+    private var documentPicker: some View {
+        Picker("", selection: Binding(
+            get: { manager.activeState.map { ObjectIdentifier($0) } },
+            set: { newId in
+                if let newId = newId,
+                   let doc = manager.documents.first(where: { $0.id == newId }) {
+                    manager.selectDocument(doc.state)
+                }
+            }
+        )) {
+            ForEach(manager.documents) { doc in
+                Text(doc.name).tag(Optional(doc.id))
+            }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 260, alignment: .leading)
+        .accessibilityLabel("Document to search")
+    }
+    
+    // MARK: - Fields
+    
+    private var fields: some View {
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+            GridRow {
+                Text("Find")
+                    .gridColumnAlignment(.trailing)
+                
+                TextField("Search text", text: $manager.findText)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($findFieldFocused)
+                    .onChange(of: manager.findText) { _, _ in manager.scheduleSearch() }
+                    .onSubmit {
+                        manager.syncAndSearch()
+                        state.findNext()
+                    }
+                    .overlay {
+                        if state.patternError != nil {
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(Color.red, lineWidth: 1)
+                        }
+                    }
+                
+                navigationButtons
+            }
+            
+            GridRow {
+                Text("Replace")
+                    .gridColumnAlignment(.trailing)
+                
+                TextField("Replacement text", text: $manager.replaceText)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: manager.replaceText) { _, newValue in
+                        state.replaceText = newValue
+                    }
+                
+                // Keeps the third column's width stable across both rows
+                Color.clear.frame(height: 1)
+            }
+        }
+    }
+    
+    private var navigationButtons: some View {
+        HStack(spacing: 4) {
+            Button { state.findPrevious() } label: {
+                Image(systemName: "chevron.backward")
+            }
+            .help("Find Previous (⇧⌘G)")
+            .disabled(!state.hasMatches)
+            
+            Button { state.findNext() } label: {
+                Image(systemName: "chevron.forward")
+            }
+            .help("Find Next (⌘G)")
+            .keyboardShortcut(.defaultAction)
+            .disabled(!state.hasMatches)
+            
+            Button { state.findAll() } label: {
+                Image(systemName: "text.line.first.and.arrowtriangle.forward")
+            }
+            .help("Highlight every match and go to the first")
+            .disabled(!hasPattern)
+        }
+        .buttonStyle(.bordered)
+    }
+    
+    // MARK: - Options
+    
+    private var optionsRow: some View {
+        HStack(spacing: 14) {
+            Toggle("Aa", isOn: $manager.caseSensitive)
+                .help("Case sensitive")
+                .onChange(of: manager.caseSensitive) { _, _ in manager.syncAndSearch() }
+            
+            Toggle(".*", isOn: $manager.usePCRE)
+                .help("Interpret the search text as a PCRE regular expression")
+                .onChange(of: manager.usePCRE) { _, _ in manager.syncAndSearch() }
+            
+            Toggle("Sel", isOn: $state.selectedTextOnly)
+                .help("Search only within the text that was selected")
+                .disabled(state.initialSelectionRange == nil)
+                .onChange(of: state.selectedTextOnly) { _, _ in manager.syncAndSearch() }
+            
+            Toggle("Wrap", isOn: $manager.wrapAround)
+                .help("Continue from the top after the last match")
+                .onChange(of: manager.wrapAround) { _, newValue in
+                    state.wrapAround = newValue
+                }
+            
+            Spacer(minLength: 8)
+            
+            summary
+        }
+        .toggleStyle(.checkbox)
+    }
+    
+    @ViewBuilder
+    private var summary: some View {
+        switch state.matchSummary {
+        case .idle:
+            // Reserve the row's height so the layout never shifts
+            Text(" ").foregroundStyle(.clear)
+        case .invalidPattern:
+            Text("Invalid pattern")
+                .foregroundStyle(.red)
+                .help(state.patternError ?? "")
+        case .noMatches:
+            Text("No matches")
+                .foregroundStyle(.red)
+        case let .match(index, total):
+            Text("\(index) of \(total)")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private var actions: some View {
+        Grid(horizontalSpacing: 8, verticalSpacing: 6) {
+            GridRow {
+                Button("Replace") { state.replaceNext() }
+                    .help("Replace the current match and move to the next")
+                    .disabled(!canReplace)
+                
+                Button("Replace All") { state.replaceAll() }
+                    .help("Replace every match")
+                    .disabled(!canReplace)
+            }
+            GridRow {
+                Button("Find All") { state.findAll() }
+                    .help("Highlight every match and go to the first")
+                    .disabled(!hasPattern)
+                
+                Button("Extract All") { state.extractAll() }
+                    .help("Copy every match into a new document")
+                    .disabled(!canReplace)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 

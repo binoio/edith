@@ -166,6 +166,9 @@ struct EditorView: NSViewRepresentable {
             scrollView?.lineNumberView.needsDisplay = true
             updateCursorPosition()
             
+            // Find results index into the text as it was; an edit invalidates them
+            parent.findReplaceState.noteDocumentChanged()
+            
             // Trigger debounced highlighting (applies colors in-place, doesn't disrupt typing)
             if let textStorage = textView.textStorage,
                let scrollView = scrollView {
@@ -427,8 +430,22 @@ class VimTextView: NSTextView {
 }
 
 // MARK: - Line Number View
+
+/// One line number the gutter should show: which number, where to draw it,
+/// and the full vertical extent of the line it labels (wrapped rows included).
+struct GutterLine: Equatable {
+    let number: Int
+    /// Rect of the line's first layout fragment, in gutter coordinates
+    let rect: NSRect
+    /// Rect spanning every fragment of the line, in gutter coordinates.
+    /// Used for click targets so wrapped lines stay clickable all the way down.
+    let hitRect: NSRect
+}
+
 class LineNumberView: NSView {
-    weak var textView: NSTextView?
+    weak var textView: NSTextView? {
+        didSet { observeTextStorage() }
+    }
     var font: NSFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular) {
         didSet {
             needsDisplay = true
@@ -444,22 +461,205 @@ class LineNumberView: NSView {
     private var dragStartLine: Int?
     private var commandKeyHeld = false
     
-    // Set the baseline width - call this when at default zoom level
-    func setBaselineWidth() {
-        baselineWidth = calculateCurrentWidth()
+    // Character index where each logical line begins. Rebuilt only when the
+    // text changes, so drawing and hit testing cost a binary search rather
+    // than a walk from the top of the document on every scroll tick.
+    private var lineStarts: [Int] = [0]
+    private var lineStartsValid = false
+    private var textStorageObserver: NSObjectProtocol?
+    
+    deinit {
+        if let observer = textStorageObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
+    private func observeTextStorage() {
+        if let observer = textStorageObserver {
+            NotificationCenter.default.removeObserver(observer)
+            textStorageObserver = nil
+        }
+        lineStartsValid = false
+        
+        guard let textStorage = textView?.textStorage else { return }
+        textStorageObserver = NotificationCenter.default.addObserver(
+            forName: NSTextStorage.didProcessEditingNotification,
+            object: textStorage,
+            queue: .main
+        ) { [weak self] notification in
+            guard let storage = notification.object as? NSTextStorage,
+                  storage.editedMask.contains(.editedCharacters) else { return }
+            self?.lineStartsValid = false
+            self?.needsDisplay = true
+            self?.superview?.needsLayout = true
+        }
+    }
+    
+    /// Drop the cached line index; the next draw rebuilds it
+    func invalidateLineStarts() {
+        lineStartsValid = false
+    }
+    
+    private func ensureLineStarts(_ content: NSString) {
+        guard !lineStartsValid else { return }
+        
+        var starts: [Int] = [0]
+        var idx = 0
+        while idx < content.length {
+            let range = content.lineRange(for: NSRange(location: idx, length: 0))
+            idx = NSMaxRange(range)
+            if idx < content.length {
+                starts.append(idx)
+            }
+        }
+        lineStarts = starts
+        lineStartsValid = true
+    }
+    
+    /// Zero-based index into `lineStarts` of the line containing `location`
+    private func lineIndex(containing location: Int) -> Int {
+        var low = 0
+        var high = lineStarts.count - 1
+        var best = 0
+        while low <= high {
+            let mid = (low + high) / 2
+            if lineStarts[mid] <= location {
+                best = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return best
+    }
+    
+    private func endsWithNewline(_ content: NSString) -> Bool {
+        guard content.length > 0 else { return false }
+        let last = content.character(at: content.length - 1)
+        return last == 0x0A || last == 0x0D
+    }
+    
+    /// Total numbered lines, counting the empty line after a trailing newline
+    var totalLineCount: Int {
+        guard let textView = textView else { return 1 }
+        let content = textView.string as NSString
+        ensureLineStarts(content)
+        return lineStarts.count + (endsWithNewline(content) ? 1 : 0)
+    }
+    
+    // MARK: - Line Number Layout
+    
+    /// The line numbers currently on screen, with their positions.
+    ///
+    /// The single source of truth for both drawing and hit testing -- these
+    /// used to be two separate copies of the same character walk, free to
+    /// disagree with each other.
+    func layoutVisibleLineNumbers() -> [GutterLine] {
+        guard let textView = textView,
+              let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else { return [] }
+        
+        let content = textView.string as NSString
+        let inset = textView.textContainerInset
+        let visibleRect = textView.visibleRect
+        
+        func toGutter(_ rect: NSRect) -> NSRect {
+            NSRect(x: 0,
+                   y: rect.origin.y + inset.height - visibleRect.origin.y,
+                   width: bounds.width,
+                   height: rect.height)
+        }
+        
+        if content.length == 0 {
+            let rect = layoutManager.extraLineFragmentRect.height > 0
+                ? layoutManager.extraLineFragmentRect
+                : NSRect(x: 0, y: 0, width: bounds.width,
+                         height: layoutManager.defaultLineHeight(for: textView.font ?? font))
+            let gutterRect = toGutter(rect)
+            return [GutterLine(number: 1, rect: gutterRect, hitRect: gutterRect)]
+        }
+        
+        ensureLineStarts(content)
+        
+        // Lay out what we are about to measure. Without this, fragment rects can
+        // be read while layout is still in flight -- which is how a stray number
+        // from a half-computed extraLineFragmentRect ended up in the gutter.
+        let visibleGlyphs = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+        layoutManager.ensureLayout(forGlyphRange: visibleGlyphs)
+        let charRange = layoutManager.characterRange(forGlyphRange: visibleGlyphs, actualGlyphRange: nil)
+        
+        // Start at the beginning of the logical line the visible range lands in,
+        // never mid-line: a number belongs to its line's first row, and starting
+        // mid-line would pin it to a wrapped continuation row instead.
+        var lineIdx = lineIndex(containing: charRange.location)
+        var idx = lineStarts[lineIdx]
+        let limit = NSMaxRange(charRange)
+        
+        var result: [GutterLine] = []
+        
+        while idx < content.length {
+            let lineRange = content.lineRange(for: NSRange(location: idx, length: 0))
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
+            let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+            let bounding = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            
+            result.append(GutterLine(number: lineIdx + 1,
+                                     rect: toGutter(fragment),
+                                     hitRect: toGutter(bounding.height > 0 ? bounding : fragment)))
+            
+            lineIdx += 1
+            idx = NSMaxRange(lineRange)
+            
+            if idx > limit { break }
+        }
+        
+        // The empty line after a trailing newline. Only when the walk actually
+        // reached the end of the content, the layout manager really has an extra
+        // fragment, and that fragment is on screen -- this block used to run
+        // unconditionally, printing whatever number the loop broke on at
+        // whatever position extraLineFragmentRect happened to hold.
+        if idx >= content.length,
+           endsWithNewline(content),
+           layoutManager.extraLineFragmentTextContainer != nil {
+            let gutterRect = toGutter(layoutManager.extraLineFragmentRect)
+            if gutterRect.maxY > 0 && gutterRect.minY < max(bounds.height, visibleRect.height) {
+                result.append(GutterLine(number: lineIdx + 1, rect: gutterRect, hitRect: gutterRect))
+            }
+        }
+        
+        // A line ending in a newline reports a bounding rect that reaches into
+        // the following fragment, so trim each click target at the next line's
+        // top. The column then partitions cleanly and a click lands on the line
+        // it is actually over.
+        for i in result.indices.dropLast() {
+            let ceiling = result[i + 1].rect.minY
+            if result[i].hitRect.maxY > ceiling {
+                let trimmed = NSRect(x: result[i].hitRect.origin.x,
+                                     y: result[i].hitRect.origin.y,
+                                     width: result[i].hitRect.width,
+                                     height: max(0, ceiling - result[i].hitRect.origin.y))
+                result[i] = GutterLine(number: result[i].number, rect: result[i].rect, hitRect: trimmed)
+            }
+        }
+        
+        return result
     }
     
     // Calculate width based on current font
     private func calculateCurrentWidth() -> CGFloat {
-        guard let textView = textView else { return 50 }
-        let lineCount = max(1, textView.string.components(separatedBy: "\n").count)
-        let digits = max(3, String(lineCount).count)
+        guard textView != nil else { return 50 }
+        let digits = max(3, String(max(1, totalLineCount)).count)
         
         let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let sampleNumber = String(repeating: "8", count: digits)
         let attrs: [NSAttributedString.Key: Any] = [.font: lineNumberFont]
         // Wider padding: 12pt left + 12pt right = 24pt total
         return sampleNumber.size(withAttributes: attrs).width + 24
+    }
+    
+    // Set the baseline width - call this when at default zoom level
+    func setBaselineWidth() {
+        baselineWidth = calculateCurrentWidth()
     }
     
     // Width never shrinks below baseline (default zoom width)
@@ -516,66 +716,13 @@ class LineNumberView: NSView {
     }
     
     // Get line number at a y position in the gutter
-    private func lineNumber(at point: NSPoint) -> Int? {
-        guard let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else { return nil }
+    func lineNumber(at point: NSPoint) -> Int? {
+        let lines = layoutVisibleLineNumbers()
+        guard !lines.isEmpty else { return nil }
         
-        let content = textView.string as NSString
-        let visibleRect = textView.visibleRect
-        let inset = textView.textContainerInset
-        
-        // Convert point to text view coordinates
-        let textViewY = point.y + visibleRect.origin.y - inset.height
-        
-        if content.length == 0 {
-            return 1
+        for line in lines where point.y >= line.hitRect.minY && point.y < line.hitRect.maxY {
+            return line.number
         }
-        
-        // Find which line this y coordinate corresponds to
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
-        let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-        
-        // Count lines before visible range
-        var lineNum = 1
-        var idx = 0
-        while idx < charRange.location {
-            let range = content.lineRange(for: NSRange(location: idx, length: 0))
-            lineNum += 1
-            idx = NSMaxRange(range)
-        }
-        
-        // Find line at this y position
-        idx = charRange.location
-        while idx < content.length {
-            let range = content.lineRange(for: NSRange(location: idx, length: 0))
-            let glyphIdx = layoutManager.glyphIndexForCharacter(at: idx)
-            let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-            
-            let lineTop = lineRect.origin.y
-            let lineBottom = lineRect.origin.y + lineRect.height
-            
-            if textViewY >= lineTop && textViewY < lineBottom {
-                return lineNum
-            }
-            
-            lineNum += 1
-            idx = NSMaxRange(range)
-        }
-        
-        // Check for trailing empty line after final newline
-        if content.length > 0 {
-            let lastChar = content.character(at: content.length - 1)
-            if lastChar == 0x0A || lastChar == 0x0D {
-                let trailingLineRect = layoutManager.extraLineFragmentRect
-                let trailingTop = trailingLineRect.origin.y
-                let trailingBottom = trailingLineRect.origin.y + trailingLineRect.height
-                if textViewY >= trailingTop && textViewY < trailingBottom {
-                    return lineNum
-                }
-            }
-        }
-        
         return nil
     }
     
@@ -588,24 +735,15 @@ class LineNumberView: NSView {
             return lineNumber == 1 ? NSRange(location: 0, length: 0) : nil
         }
         
-        var currentLine = 1
-        var idx = 0
+        ensureLineStarts(content)
         
-        while idx < content.length {
-            let range = content.lineRange(for: NSRange(location: idx, length: 0))
-            if currentLine == lineNumber {
-                return range
-            }
-            currentLine += 1
-            idx = NSMaxRange(range)
+        if lineNumber >= 1 && lineNumber <= lineStarts.count {
+            return content.lineRange(for: NSRange(location: lineStarts[lineNumber - 1], length: 0))
         }
         
-        // Handle trailing empty line
-        if currentLine == lineNumber && content.length > 0 {
-            let lastChar = content.character(at: content.length - 1)
-            if lastChar == 0x0A || lastChar == 0x0D {
-                return NSRange(location: content.length, length: 0)
-            }
+        // Trailing empty line after a final newline
+        if lineNumber == lineStarts.count + 1 && endsWithNewline(content) {
+            return NSRange(location: content.length, length: 0)
         }
         
         return nil
@@ -709,93 +847,24 @@ class LineNumberView: NSView {
         path.line(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.maxY))
         path.stroke()
         
-        guard let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else { return }
-        
         let numberFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize * 0.85, weight: .regular)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: numberFont,
             .foregroundColor: NSColor.secondaryLabelColor
         ]
         
-        let visibleRect = textView.visibleRect
-        let content = textView.string as NSString
-        let inset = textView.textContainerInset
-        
-        // Calculate max width for right-alignment (based on total line count)
-        let totalLines = max(1, content.components(separatedBy: "\n").count)
-        let maxDigits = max(3, String(totalLines).count)
+        // Right-align every number within a column centered in the gutter
+        let maxDigits = max(3, String(max(1, totalLineCount)).count)
         let maxNumberWidth = String(repeating: "8", count: maxDigits).size(withAttributes: attrs).width
-        // Center the number column in the gutter
         let columnLeftEdge = (bounds.width - maxNumberWidth) / 2
         
-        if content.length == 0 {
-            let s = "1"
-            let sz = s.size(withAttributes: attrs)
-            // Right-align within centered column
-            let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-            let emptyLineRect = layoutManager.extraLineFragmentRect.height > 0
-                ? layoutManager.extraLineFragmentRect
-                : NSRect(x: 0, y: 0, width: bounds.width, height: layoutManager.defaultLineHeight(for: textView.font ?? font))
-            let lineTop = emptyLineRect.origin.y + inset.height - visibleRect.origin.y
-            let yPos = lineTop + (emptyLineRect.height - sz.height) / 2.0
-            s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
-            return
-        }
-        
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
-        let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-        
-        // Count lines before visible range
-        var lineNum = 1
-        var idx = 0
-        while idx < charRange.location {
-            let range = content.lineRange(for: NSRange(location: idx, length: 0))
-            lineNum += 1
-            idx = NSMaxRange(range)
-        }
-        
-        // Draw visible line numbers
-        idx = charRange.location
-        while idx < content.length {
-            let range = content.lineRange(for: NSRange(location: idx, length: 0))
-            let glyphIdx = layoutManager.glyphIndexForCharacter(at: idx)
-            let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: nil)
-            
-            let lineTop = lineRect.origin.y + inset.height - visibleRect.origin.y
-            let lineHeight = lineRect.height
-            
-            let s = "\(lineNum)"
-            let sz = s.size(withAttributes: attrs)
-            // Right-align within centered column
-            let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-            // Vertically center line number within line fragment
-            let yPos = lineTop + (lineHeight - sz.height) / 2.0
-            s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
-            
-            lineNum += 1
-            idx = NSMaxRange(range)
-            
-            if idx > NSMaxRange(charRange) {
-                break
-            }
-        }
-        
-        // Check for trailing empty line after final newline
-        if content.length > 0 {
-            let lastChar = content.character(at: content.length - 1)
-            if lastChar == 0x0A || lastChar == 0x0D {
-                let trailingLineRect = layoutManager.extraLineFragmentRect
-                let lineTop = trailingLineRect.origin.y + inset.height - visibleRect.origin.y
-                let lineHeight = trailingLineRect.height
-                
-                let s = "\(lineNum)"
-                let sz = s.size(withAttributes: attrs)
-                let xPos = columnLeftEdge + (maxNumberWidth - sz.width)
-                let yPos = lineTop + (lineHeight - sz.height) / 2.0
-                s.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
-            }
+        for line in layoutVisibleLineNumbers() {
+            let text = "\(line.number)"
+            let size = text.size(withAttributes: attrs)
+            let xPos = columnLeftEdge + (maxNumberWidth - size.width)
+            // Vertically center the number within its line fragment
+            let yPos = line.rect.origin.y + (line.rect.height - size.height) / 2.0
+            text.draw(at: NSPoint(x: xPos, y: yPos), withAttributes: attrs)
         }
     }
 }

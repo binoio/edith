@@ -162,7 +162,7 @@ struct ContentView: View {
             // Unregister when document closes
             FindReplaceManager.shared.unregisterState(findReplaceState)
         }
-        .onChange(of: document.text) { _ in
+        .onChange(of: document.text) { _, _ in
             DocumentSessionCoordinator.shared.noteChange()
         }
         .onReceive(NotificationCenter.default.publisher(for: .claimUntitledRestore)) { _ in

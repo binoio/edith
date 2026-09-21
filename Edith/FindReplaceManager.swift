@@ -47,17 +47,46 @@ final class FindReplaceManager: ObservableObject {
     /// Tracks which state is currently registered with document names
     private var registeredStates: [ObjectIdentifier: (state: FindReplaceState, name: String)] = [:]
     
+    /// In-flight debounced search, cancelled whenever newer input arrives
+    private var pendingSearch: Task<Void, Never>?
+    
+    /// How long to wait for typing to settle before searching
+    private static let searchDebounce: Duration = .milliseconds(120)
+    
     private init() {}
     
-    /// Sync shared parameters to active state and perform search
-    func syncAndSearch() {
+    /// Push the shared parameters onto the active state without searching
+    private func syncParameters() {
         guard let state = activeState else { return }
         state.findText = findText
         state.replaceText = replaceText
         state.caseSensitive = caseSensitive
         state.usePCRE = usePCRE
         state.wrapAround = wrapAround
-        state.performSearch()
+    }
+    
+    /// Sync shared parameters to active state and perform search immediately
+    func syncAndSearch() {
+        pendingSearch?.cancel()
+        pendingSearch = nil
+        syncParameters()
+        activeState?.performSearch()
+    }
+    
+    /// Sync and search once typing settles.
+    ///
+    /// Incremental search re-scans and re-highlights the whole document; on a
+    /// large file doing that synchronously per keystroke stalls the main thread,
+    /// and it also churns through intermediate match sets nobody sees.
+    func scheduleSearch() {
+        syncParameters()
+        pendingSearch?.cancel()
+        pendingSearch = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.searchDebounce)
+            guard !Task.isCancelled, let self else { return }
+            self.pendingSearch = nil
+            self.activeState?.performSearch()
+        }
     }
     
     /// Called when a document window becomes key (focused)
@@ -88,6 +117,7 @@ final class FindReplaceManager: ObservableObject {
         // If this was the active state, select first available or nil
         if activeState === state {
             activeState = documents.first?.state
+            syncAndSearch()
         }
     }
     

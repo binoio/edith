@@ -288,4 +288,82 @@ final class SearchEngineTests: XCTestCase {
         
         XCTAssertEqual(matches.count, 3)
     }
+
+    // MARK: - Pattern Validation
+    
+    func testPatternErrorForValidRegex() {
+        XCTAssertNil(SearchEngine.patternError(for: "[a-z]+", usePCRE: true))
+    }
+    
+    func testPatternErrorForInvalidRegex() {
+        XCTAssertNotNil(SearchEngine.patternError(for: "[invalid", usePCRE: true))
+    }
+    
+    /// A plain-text search can never fail to compile, brackets and all
+    func testPatternErrorIgnoresPlainTextMode() {
+        XCTAssertNil(SearchEngine.patternError(for: "[invalid", usePCRE: false))
+    }
+    
+    func testPatternErrorForEmptyPattern() {
+        XCTAssertNil(SearchEngine.patternError(for: "", usePCRE: true))
+    }
+    
+    // MARK: - Zero-Length Matches
+    
+    /// `x*` matches the empty string at every position; those results
+    /// highlight nothing and leave Find Next with nowhere to go
+    func testZeroLengthRegexMatchesAreExcluded() {
+        let matches = SearchEngine.findMatches(in: "abc", pattern: "x*", usePCRE: true)
+        XCTAssertTrue(matches.allSatisfy { $0.length > 0 }, "got zero-length matches: \(matches)")
+    }
+    
+    func testMixedLengthRegexKeepsTheNonEmptyMatches() {
+        let matches = SearchEngine.findMatches(in: "aa b aaa", pattern: "a*", usePCRE: true)
+        XCTAssertEqual(matches.map { $0.length }, [2, 3])
+    }
+    
+    // MARK: - Out-of-Bounds Search Ranges
+    
+    /// A range captured before an edit can outlive the text it described
+    func testSearchRangePastTheEndIsClampedNotFatal() {
+        let matches = SearchEngine.findMatches(
+            in: "short",
+            pattern: "s",
+            searchRange: NSRange(location: 0, length: 500)
+        )
+        XCTAssertEqual(matches.count, 1)
+    }
+    
+    func testSearchRangeStartingPastTheEndFindsNothing() {
+        let matches = SearchEngine.findMatches(
+            in: "short",
+            pattern: "s",
+            searchRange: NSRange(location: 500, length: 10)
+        )
+        XCTAssertTrue(matches.isEmpty)
+    }
+    
+    func testClampTrimsToAvailableLength() {
+        XCTAssertEqual(SearchEngine.clamp(NSRange(location: 2, length: 99), to: 5),
+                       NSRange(location: 2, length: 3))
+        XCTAssertNil(SearchEngine.clamp(NSRange(location: 9, length: 1), to: 5))
+    }
+    
+    // MARK: - Replacement Expansion
+    
+    func testReplacementsExpandBackreferencesPerMatch() {
+        let edits = SearchEngine.replacements(
+            in: "John Smith",
+            pattern: "(\\w+) (\\w+)",
+            replacement: "$2, $1",
+            usePCRE: true
+        )
+        XCTAssertEqual(edits.count, 1)
+        XCTAssertEqual(edits[0].text, "Smith, John")
+    }
+    
+    func testReplacementsArePlainTextWithoutPCRE() {
+        let edits = SearchEngine.replacements(in: "cat cat", pattern: "cat", replacement: "$1")
+        XCTAssertEqual(edits.map { $0.text }, ["$1", "$1"])
+    }
 }
